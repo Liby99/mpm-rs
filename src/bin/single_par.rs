@@ -7,7 +7,7 @@ fn main() {
   if let Err(err) = std::fs::create_dir(&outdir) { panic!(err); }
 
   // First construct the world, size 1 * 1 * 1
-  let mut world = World::new(0.01, Vector3u::new(100, 100, 100));
+  let mut world = World::new(Vector3f::new(1.0, 1.0, 1.0), 0.02);
 
   // Build the boundaries
   put_boundary(&mut world, 0.03);

@@ -83,9 +83,7 @@ mod test {
 
   #[test]
   fn gen_world_1() {
-    let grid = Grid::new(0.01, Vector3u::new(100, 100, 100));
-    let particles = vec![];
-    let mut world = World { grid, particles };
+    let mut world = World::new(Vector3f::new(1.0, 1.0, 1.0), 0.02);
     put_boundary(&mut world, 0.03);
     put_ball(&mut world, Vector3f::new(0.5, 0.8, 0.5), 0.1, 1000, 1.0);
     assert_eq!(world.particles.len(), 1000);

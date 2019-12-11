@@ -82,6 +82,8 @@ pub struct WeightIterator {
 }
 
 impl Iterator for WeightIterator {
+
+  /// (Node Index, Weight, Weight Gradient)
   type Item = (Vector3i, f32, Vector3f);
 
   fn next(&mut self) -> Option<Self::Item> {
@@ -144,7 +146,7 @@ pub struct Grid {
 }
 
 impl Grid {
-  pub fn new(h: f32, dim: Vector3u) -> Self {
+  pub fn new(dim: Vector3u, h: f32) -> Self {
     let num_nodes = dim.x * dim.y * dim.z;
     let mut nodes = Vec::with_capacity(num_nodes);
     for z in 0..dim.z {
@@ -236,8 +238,11 @@ pub struct World {
 }
 
 impl World {
-  pub fn new(h: f32, dim: Vector3u) -> Self {
-    let grid = Grid::new(h, dim);
+  pub fn new(size: Vector3f, h: f32) -> Self {
+    let x_dim = (size.x / h) as usize;
+    let y_dim = (size.y / h) as usize;
+    let z_dim = (size.z / h) as usize;
+    let grid = Grid::new(Vector3u::new(x_dim, y_dim, z_dim), h);
     let particles = vec![];
     Self { grid, particles }
   }
@@ -290,6 +295,18 @@ impl World {
     self.grid.set_boundary_velocities();
   }
 
+  fn evolve_particle_force(&mut self, dt: f32) {
+    for par in &mut self.particles {
+      let this_fp = par.force;
+      let mut grad_vp = Matrix3f::zeros();
+      for (node_index, _, grad_w) in self.grid.iterate_neighbors(par.position) {
+        let node = self.grid.get_node(node_index);
+        grad_vp += node.velocity * grad_w.transpose();
+      }
+      par.force = (Matrix3f::identity() + dt * grad_vp) * this_fp;
+    }
+  }
+
   fn g2p(&mut self, dt: f32) {
     for par in &mut self.particles {
 
@@ -304,18 +321,6 @@ impl World {
 
       // Finally move the particles using the velocity
       par.position += dt * par.velocity;
-    }
-  }
-
-  fn evolve_particle_force(&mut self, dt: f32) {
-    for par in &mut self.particles {
-      let this_fp = par.force;
-      let mut grad_vp = Matrix3f::zeros();
-      for (node_index, _, grad_w) in self.grid.iterate_neighbors(par.position) {
-        let node = self.grid.get_node(node_index);
-        grad_vp += node.velocity * grad_w.transpose();
-      }
-      par.force = (Matrix3f::identity() + dt * grad_vp) * this_fp;
     }
   }
 
