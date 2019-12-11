@@ -1,6 +1,9 @@
+use std::fs::File;
+use std::io::Write;
+
 use super::math::*;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Particle {
   pub mass: f32,
   pub position: Vector3f,
@@ -13,13 +16,13 @@ impl Particle {
   }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Boundary {
   // pub friction: f32,
   pub normal: Vector3f,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Node {
   pub mass: f32,
   pub index: Vector3u,
@@ -113,6 +116,7 @@ impl Iterator for WeightIterator {
   }
 }
 
+#[derive(Debug)]
 pub struct Grid {
   pub h: f32,
   pub dim: Vector3u,
@@ -241,12 +245,19 @@ impl Grid {
   }
 }
 
+#[derive(Debug)]
 pub struct World {
   pub grid: Grid,
   pub particles: Vec<Particle>,
 }
 
 impl World {
+  pub fn new(h: f32, dim: Vector3u) -> Self {
+    let grid = Grid::new(h, dim);
+    let particles = vec![];
+    Self { grid, particles }
+  }
+
   fn g2p(&mut self) {
     for par in &mut self.particles {
 
@@ -291,5 +302,17 @@ impl World {
 
     // 7. Move the particles
     self.move_particles(dt);
+  }
+
+  pub fn dump(&self, filename: String) -> std::io::Result<()> {
+    let mut file = File::create(filename)?;
+    file.write(b"POINTS\n")?;
+    for (i, par) in self.particles.iter().enumerate() {
+      let pos = par.position;
+      let line = format!("{}: {} {} {}\n", i + 1, pos.x, pos.y, pos.z);
+      file.write(line.as_bytes())?;
+    }
+    file.write(b"POLYS\nEND\n")?;
+    Ok(())
   }
 }
