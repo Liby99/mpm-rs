@@ -77,35 +77,35 @@ impl Iterator for WeightIterator {
         // Get Node
         let node_index = self.base_node + self.curr_node;
 
+        // Calculate weight
+        let wi = self.wx[self.curr_node.x as usize];
+        let wj = self.wy[self.curr_node.y as usize];
+        let wk = self.wz[self.curr_node.z as usize];
+        let weight = wi * wj * wk;
+
+        // Compute the `curr_node` for next step
+        if self.curr_node.x == 2 {
+          if self.curr_node.y == 2 {
+            self.curr_node.z += 1;
+            self.curr_node.x = 0;
+            self.curr_node.y = 0;
+          } else {
+            self.curr_node.y += 1;
+            self.curr_node.x = 0;
+          }
+        } else {
+          self.curr_node.x += 1;
+        }
+
         // Check if node is inside the grid
         let x_in = 0 <= node_index.x && node_index.x < self.dim.x as i32;
         let y_in = 0 <= node_index.y && node_index.y < self.dim.y as i32;
         let z_in = 0 <= node_index.z && node_index.z < self.dim.z as i32;
         if x_in && y_in && z_in {
-
-          // Calculate weight
-          let wi = self.wx[self.curr_node.x as usize];
-          let wj = self.wy[self.curr_node.y as usize];
-          let wk = self.wz[self.curr_node.z as usize];
-          let weight = wi * wj * wk;
-
-          // Compute the `curr_node` for next step
-          if self.curr_node.x == 2 {
-            if self.curr_node.y == 2 {
-              self.curr_node.z += 1;
-              self.curr_node.x = 0;
-              self.curr_node.y = 0;
-            } else {
-              self.curr_node.y += 1;
-              self.curr_node.x = 0;
-            }
-          } else {
-            self.curr_node.x += 1;
-          }
-
-          // Return the result
           return Some((node_index, weight))
         }
+
+        // If not, then the loop will continue
       } else {
         return None
       }

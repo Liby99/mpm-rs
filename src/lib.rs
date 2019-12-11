@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate pbr;
 extern crate nalgebra as na;
 
 mod math;

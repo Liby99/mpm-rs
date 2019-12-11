@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use pbr::ProgressBar;
 
 use super::mpm::*;
 
@@ -18,8 +19,10 @@ impl Driver {
   }
 
   pub fn run(&mut self, outdir: String, num_steps: usize) -> std::io::Result<()> {
+    let mut pb = ProgressBar::new(num_steps as u64);
     let num_digits = (num_steps as f32).log(10.0).ceil() as usize;
     for frame in 0..num_steps {
+      pb.inc();
 
       // First step the world forward
       self.world.step(self.dt);
@@ -35,6 +38,7 @@ impl Driver {
       }
       file.write(b"END\n")?;
     }
+    pb.finish_print("Done");
     Ok(())
   }
 }
