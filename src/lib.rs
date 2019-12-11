@@ -31,11 +31,12 @@ impl Node {
 
 pub struct Grid {
   pub h: f32,
-  pub dimension: Vector3i,
+  pub dimension: Vector3u,
   nodes: Vec<Node>,
 }
 
 pub struct WeightIterator {
+  pub dimension: Vector3u,
   pub base_node: Vector3i,
   pub curr_node: Vector3i,
   pub wx: Vector3f,
@@ -50,31 +51,47 @@ impl Iterator for WeightIterator {
   type Item = (Vector3i, f32);
 
   fn next(&mut self) -> Option<Self::Item> {
-    let x_in = self.curr_node.x < 3;
-    let y_in = self.curr_node.y < 3;
-    let z_in = self.curr_node.z < 3;
-    if x_in && y_in && z_in {
+    loop {
+      let x_in = self.curr_node.x < 3;
+      let y_in = self.curr_node.y < 3;
+      let z_in = self.curr_node.z < 3;
+      if x_in && y_in && z_in {
 
-      let report_node = self.base_node + self.curr_node;
-      let weight = self.wx[self.curr_node.x] * self.wy[self.curr_node.y] * self.wz[self.curr_node.z];
+        // Get Node
+        let node_index = self.base_node + self.curr_node;
 
-      // Compute the `curr_node` for next step
-      if self.curr_node.x == 2 {
-        if self.curr_node.y == 2 {
-          self.curr_node.z += 1;
-          self.curr_node.x = 0;
-          self.curr_node.y = 0;
-        } else {
-          self.curr_node.y += 1;
-          self.curr_node.x = 0;
+        // Check if node is inside the grid
+        let x_in = 0 <= node_index.x && node_index.x < self.dimension.x as i32;
+        let y_in = 0 <= node_index.y && node_index.y < self.dimension.y as i32;
+        let z_in = 0 <= node_index.z && node_index.z < self.dimension.z as i32;
+        if x_in && y_in && z_in {
+
+          // Calculate weight
+          let wi = self.wx[self.curr_node.x as usize];
+          let wj = self.wy[self.curr_node.y as usize];
+          let wk = self.wz[self.curr_node.z as usize];
+          let weight = wi * wj * wk;
+
+          // Compute the `curr_node` for next step
+          if self.curr_node.x == 2 {
+            if self.curr_node.y == 2 {
+              self.curr_node.z += 1;
+              self.curr_node.x = 0;
+              self.curr_node.y = 0;
+            } else {
+              self.curr_node.y += 1;
+              self.curr_node.x = 0;
+            }
+          } else {
+            self.curr_node.x += 1;
+          }
+
+          // Return the result
+          return Some((node_index, weight))
         }
       } else {
-        self.curr_node.x += 1;
+        return None
       }
-
-      Some((report_node, weight))
-    } else {
-      None
     }
   }
 }
@@ -87,30 +104,23 @@ impl Grid {
   }
 
   fn raw_index(&self, node_index: Vector3i) -> usize {
-    self.dimension.x * self.dimension.y * node_index.z + self.dimension.x * node_index.y + node_index.x
+    let z_comp = self.dimension.x * self.dimension.y * node_index.z as usize;
+    let y_comp = self.dimension.x * node_index.y as usize;
+    let x_comp = node_index.x as usize;
+    z_comp + y_comp + x_comp
   }
 
-  pub fn get_node(&self, node_index: Vector3i) -> &Node {
+  fn get_node(&self, node_index: Vector3i) -> &Node {
     let index = self.raw_index(node_index);
     &self.nodes[index]
   }
 
-  pub fn get_node_mut(&mut self, cell_index: Vector3i) -> &mut Node {
+  fn get_node_mut(&mut self, cell_index: Vector3i) -> &mut Node {
     let index = self.raw_index(cell_index);
     &mut self.nodes[index]
   }
 
-  pub fn get_base_node_index(&self, par: &Particle) -> Vector3i {
-    let diff = Vector3f::new(-0.5, -0.5, -0.5);
-    let bp = (par.position + diff) / self.h;
-    Vector3i::new(
-        bp.x.floor() as usize,
-        bp.y.floor() as usize,
-        bp.z.floor() as usize,
-    )
-  }
-
-  pub fn get_weight_1d(&self, pos: f32) -> (usize, Vector3f, Vector3f) {
+  fn get_weight_1d(&self, pos: f32) -> (i32, Vector3f, Vector3f) {
     let x = (pos - 0.5) / self.h;
     let base_node = x.floor();
 
@@ -134,16 +144,20 @@ impl Grid {
     dw.y = -2.0 * d1;
     dw.z = zz;
 
-    (base_node as usize, w, dw)
+    (base_node as i32, w, dw)
   }
 
   pub fn iterate_neighbors(&self, pos: Vector3f) -> WeightIterator {
     let (bnx, wx, dwx) = self.get_weight_1d(pos.x);
     let (bny, wy, dwy) = self.get_weight_1d(pos.y);
     let (bnz, wz, dwz) = self.get_weight_1d(pos.z);
+    let dimension = self.dimension;
     let base_node = Vector3i::new(bnx, bny, bnz);
     let curr_node = Vector3i::zeros();
-    WeightIterator { base_node, curr_node, wx, wy, wz, dwx, dwy, dwz }
+    WeightIterator {
+      dimension, base_node, curr_node,
+      wx, wy, wz, dwx, dwy, dwz
+    }
   }
 
   pub fn transfer_mass(&mut self, particles: &Vec<Particle>) {
@@ -190,7 +204,7 @@ pub struct World {
 }
 
 impl World {
-  pub fn g2p(&mut self) {
+  fn g2p(&mut self) {
     for par in &mut self.particles {
 
       // First clear the velocity
@@ -204,7 +218,7 @@ impl World {
     }
   }
 
-  pub fn move_particles(&mut self, dt: f32) {
+  fn move_particles(&mut self, dt: f32) {
     for par in &mut self.particles {
       par.position += dt * par.velocity;
     }
