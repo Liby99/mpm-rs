@@ -7,6 +7,12 @@ pub struct Particle {
   pub velocity: Vector3f,
 }
 
+impl Particle {
+  pub fn new(mass: f32, position: Vector3f) -> Self {
+    Self { mass, position, velocity: Vector3f::zeros() }
+  }
+}
+
 #[derive(Copy, Clone)]
 pub struct Boundary {
   // pub friction: f32,
@@ -128,28 +134,6 @@ impl Grid {
     Self { h, dim, nodes }
   }
 
-  pub fn init_boundary(&mut self, thickness: f32) {
-    let num_nodes = (thickness / self.h).ceil() as usize;
-    for node in &mut self.nodes {
-      let boundary = if node.index.x < num_nodes {
-        Some(Boundary { normal: Vector3f::new(1.0, 0.0, 0.0) })
-      } else if node.index.x > self.dim.x - num_nodes {
-        Some(Boundary { normal: Vector3f::new(-1.0, 0.0, 0.0) })
-      } else if node.index.y < num_nodes {
-        Some(Boundary { normal: Vector3f::new(0.0, 1.0, 0.0) })
-      } else if node.index.y > self.dim.y - num_nodes {
-        Some(Boundary { normal: Vector3f::new(0.0, -1.0, 0.0) })
-      } else if node.index.z < num_nodes {
-        Some(Boundary { normal: Vector3f::new(0.0, 0.0, 1.0) })
-      } else if node.index.z > self.dim.z - num_nodes {
-        Some(Boundary { normal: Vector3f::new(0.0, 0.0, -1.0) })
-      } else {
-        None
-      };
-      node.boundary = boundary;
-    }
-  }
-
   pub fn clean(&mut self) {
     for node in &mut self.nodes {
       node.clean();
@@ -258,7 +242,6 @@ impl Grid {
 }
 
 pub struct World {
-  pub boundary_width: f32,
   pub grid: Grid,
   pub particles: Vec<Particle>,
 }
