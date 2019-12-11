@@ -3,7 +3,7 @@ use mpm_rs::*;
 fn main() {
 
   // Before all, create the directory
-  let outdir = "single_ball_out".to_string();
+  let outdir = "result/single_ball_out".to_string();
   if let Err(err) = std::fs::create_dir(&outdir) {
     println!("Cannot make directory {}: {:?}", outdir, err);
     return;
