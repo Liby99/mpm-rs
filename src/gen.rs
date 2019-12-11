@@ -16,22 +16,45 @@ pub fn sample_point_in_sphere(center: Vector3f, radius: f32) -> Vector3f {
   }
 }
 
+pub fn put_zero_boundary(world: &mut World, thickness: f32) {
+  let grid = &mut world.grid;
+  let num_nodes = (thickness / grid.h).ceil() as usize;
+  for node in &mut grid.nodes {
+    let boundary = if node.index.x < num_nodes {
+      Some(Boundary::SetZero)
+    } else if node.index.x > grid.dim.x - num_nodes {
+      Some(Boundary::SetZero)
+    } else if node.index.y < num_nodes {
+      Some(Boundary::SetZero)
+    } else if node.index.y > grid.dim.y - num_nodes {
+      Some(Boundary::SetZero)
+    } else if node.index.z < num_nodes {
+      Some(Boundary::SetZero)
+    } else if node.index.z > grid.dim.z - num_nodes {
+      Some(Boundary::SetZero)
+    } else {
+      None
+    };
+    node.boundary = boundary;
+  }
+}
+
 pub fn put_boundary(world: &mut World, thickness: f32) {
   let grid = &mut world.grid;
   let num_nodes = (thickness / grid.h).ceil() as usize;
   for node in &mut grid.nodes {
     let boundary = if node.index.x < num_nodes {
-      Some(Boundary { normal: Vector3f::new(1.0, 0.0, 0.0) })
+      Some(Boundary::Surface { normal: Vector3f::new(1.0, 0.0, 0.0) })
     } else if node.index.x > grid.dim.x - num_nodes {
-      Some(Boundary { normal: Vector3f::new(-1.0, 0.0, 0.0) })
+      Some(Boundary::Surface { normal: Vector3f::new(-1.0, 0.0, 0.0) })
     } else if node.index.y < num_nodes {
-      Some(Boundary { normal: Vector3f::new(0.0, 1.0, 0.0) })
+      Some(Boundary::Surface { normal: Vector3f::new(0.0, 1.0, 0.0) })
     } else if node.index.y > grid.dim.y - num_nodes {
-      Some(Boundary { normal: Vector3f::new(0.0, -1.0, 0.0) })
+      Some(Boundary::Surface { normal: Vector3f::new(0.0, -1.0, 0.0) })
     } else if node.index.z < num_nodes {
-      Some(Boundary { normal: Vector3f::new(0.0, 0.0, 1.0) })
+      Some(Boundary::Surface { normal: Vector3f::new(0.0, 0.0, 1.0) })
     } else if node.index.z > grid.dim.z - num_nodes {
-      Some(Boundary { normal: Vector3f::new(0.0, 0.0, -1.0) })
+      Some(Boundary::Surface { normal: Vector3f::new(0.0, 0.0, -1.0) })
     } else {
       None
     };
