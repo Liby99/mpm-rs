@@ -28,6 +28,7 @@ pub struct Node {
   pub index: Vector3u,
   pub velocity: Vector3f,
   pub momentum: Vector3f,
+  pub force: Vector3f,
   pub boundary: Option<Boundary>,
 }
 
@@ -38,6 +39,7 @@ impl Node {
       mass: 0.0,
       velocity: Vector3f::zeros(),
       momentum: Vector3f::zeros(),
+      force: Vector3f::zeros(),
       boundary: None,
     }
   }
@@ -46,9 +48,10 @@ impl Node {
     self.mass = 0.0;
     self.velocity = Vector3f::zeros();
     self.momentum = Vector3f::zeros();
+    self.force = Vector3f::zeros();
   }
 
-  pub fn clean_boundary(&mut self) {
+  pub fn set_boundary_velocities(&mut self) {
     if let Some(b) = self.boundary {
       self.velocity -= Vector3f::dot(&self.velocity, &b.normal) * b.normal;
     }
@@ -60,10 +63,10 @@ pub struct WeightIterator {
   pub base_node: Vector3i,
   pub curr_node: Vector3i,
   pub wx: Vector3f,
-  pub dwx: Vector3f,
   pub wy: Vector3f,
-  pub dwy: Vector3f,
   pub wz: Vector3f,
+  pub dwx: Vector3f,
+  pub dwy: Vector3f,
   pub dwz: Vector3f,
 }
 
@@ -144,9 +147,9 @@ impl Grid {
     }
   }
 
-  pub fn clean_boundary(&mut self) {
+  pub fn set_boundary_velocities(&mut self) {
     for node in &mut self.nodes {
-      node.clean_boundary();
+      node.set_boundary_velocities();
     }
   }
 
@@ -168,8 +171,8 @@ impl Grid {
   }
 
   fn get_weight_1d(&self, pos: f32) -> (i32, Vector3f, Vector3f) {
-    let x = (pos - 0.5) / self.h;
-    let base_node = x.floor();
+    let x = pos / self.h;
+    let base_node = (x - 0.5).floor();
 
     let mut w = Vector3f::zeros();
     let mut dw = Vector3f::zeros();
@@ -206,43 +209,6 @@ impl Grid {
       wx, wy, wz, dwx, dwy, dwz
     }
   }
-
-  pub fn transfer_mass(&mut self, particles: &Vec<Particle>) {
-    for par in particles {
-      for (node_index, weight) in self.iterate_neighbors(par.position) {
-        let node = self.get_node_mut(node_index);
-        node.mass += par.mass * weight;
-      }
-    }
-  }
-
-  pub fn transfer_momentum(&mut self, particles: &Vec<Particle>) {
-    for par in particles {
-      for (node_index, weight) in self.iterate_neighbors(par.position) {
-        let node = self.get_node_mut(node_index);
-        node.momentum += par.mass * par.velocity * weight;
-      }
-    }
-  }
-
-  pub fn set_velocity(&mut self) {
-    for node in &mut self.nodes {
-
-      // Check node mass. If 0, then directly set the velocity of node to zero
-      if node.mass == 0.0 {
-        node.velocity = Vector3f::zeros();
-      } else {
-        node.velocity = node.momentum / node.mass;
-      }
-    }
-  }
-
-  pub fn apply_gravity(&mut self, dt: f32) {
-    let g = Vector3f::new(0.0, -9.8, 0.0);
-    for node in &mut self.nodes {
-      node.velocity += g * dt;
-    }
-  }
 }
 
 #[derive(Debug)]
@@ -256,6 +222,55 @@ impl World {
     let grid = Grid::new(h, dim);
     let particles = vec![];
     Self { grid, particles }
+  }
+
+  pub fn clean_grid(&mut self) {
+    self.grid.clean();
+  }
+
+  pub fn p2g(&mut self) {
+    for par in &self.particles {
+      for (node_index, weight) in self.grid.iterate_neighbors(par.position) {
+        let node = self.grid.get_node_mut(node_index);
+        node.mass += par.mass * weight;
+        node.momentum += par.mass * par.velocity * weight;
+      }
+    }
+  }
+
+  pub fn momentum_to_velocity(&mut self) {
+    for node in &mut self.grid.nodes {
+
+      // Check node mass. If 0, then directly set the velocity of node to zero
+      if node.mass == 0.0 {
+        node.velocity = Vector3f::zeros();
+      } else {
+        node.velocity = node.momentum / node.mass;
+      }
+    }
+  }
+
+  pub fn apply_gravity(&mut self) {
+    let g = Vector3f::new(0.0, -9.8, 0.0);
+    for node in &mut self.grid.nodes {
+      node.force += g * node.mass;
+    }
+  }
+
+  pub fn apply_elastic_force(&mut self) {
+    // TODO
+  }
+
+  pub fn force_to_velocity(&mut self, dt: f32) {
+    for node in &mut self.grid.nodes {
+      if node.mass != 0.0 {
+        node.velocity += node.force / node.mass * dt;
+      }
+    }
+  }
+
+  fn set_boundary_velocities(&mut self) {
+    self.grid.set_boundary_velocities();
   }
 
   fn g2p(&mut self) {
@@ -279,23 +294,25 @@ impl World {
   }
 
   pub fn step(&mut self, dt: f32) {
+
     // 1. Clean grid data by zeroing out everything.
-    self.grid.clean();
+    self.clean_grid();
 
-    // 2. Transfer mass from particles to grid using
-    self.grid.transfer_mass(&self.particles);
+    // 2. Transfer particles to grid
+    self.p2g();
 
-    // 3. Transfer momentum to grid using
-    self.grid.transfer_momentum(&self.particles);
+    // 3. Go over all grid nodes, convert momentum to velocity
+    self.momentum_to_velocity();
 
-    // 4. Go over all grid nodes, if mi = 0, set vi = 0. Otherwise, set
-    self.grid.set_velocity();
+    // 4. Apply forces on grid
+    self.apply_gravity();
+    self.apply_elastic_force();
 
-    // 5. Apply gravity on grid
-    self.grid.apply_gravity(dt);
+    // 4.1. Turn force into velocity
+    self.force_to_velocity(dt);
 
-    // 5.1. Clean the boundary
-    self.grid.clean_boundary();
+    // 5. Clean the boundary
+    self.set_boundary_velocities();
 
     // 6. Interpolate new velocity back to particles
     self.g2p();

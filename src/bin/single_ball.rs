@@ -14,8 +14,8 @@ fn main() {
   put_ball(&mut world, Vector3f::new(0.5, 0.8, 0.5), 0.05, 1000, 1.0);
 
   // Then build the driver
-  let mut driver = Driver::new(world, 0.1);
+  let mut driver = Driver::new(world, 0.01);
 
   // Finally run the driver
-  if let Err(err) = driver.run(outdir, 100) { panic!(err); }
+  if let Err(err) = driver.run(outdir, 500) { panic!(err); }
 }
