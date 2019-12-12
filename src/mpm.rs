@@ -3,43 +3,83 @@ use std::io::Write;
 
 use super::math::*;
 
+/// Particle inside MPM simulation
 #[derive(Copy, Clone, Debug)]
 pub struct Particle {
+
+  /// the mass of the particle
   pub mass: f32,
+
+  /// the position of the particle
   pub position: Vector3f,
+
+  /// the velocity of the particle
   pub velocity: Vector3f,
-  // pub force: Matrix3f,
+
+  /// $F_p$
+  pub f: Matrix3f,
 }
 
 impl Particle {
+
+  /// Generate a new particle with given mass and position
   pub fn new(mass: f32, position: Vector3f) -> Self {
     let velocity = Vector3f::zeros();
-    // let force = Matrix3f::zeros();
+    let f = Matrix3f::zeros();
     Self {
       mass,
       position,
-      velocity, /*force*/
+      velocity,
+      f,
     }
   }
 }
 
+/// The boundary type information associated with each Node
 #[derive(Copy, Clone, Debug)]
 pub enum Boundary {
+
+  /// Not a boundary
+  None,
+
+  /// When dealing with the node velocity, set it to zero
   SetZero,
-  Surface { normal: Vector3f },
+
+  /// Remove the velocity component along surface normal
+  Surface { normal: Vector3f }, // TODO: Friction
 }
 
+/// The Node of the Grid
+///
+/// The `index` and `boundary` information of Node will be kept immutable, while
+/// all the other information should be cleaned to `0` at the beginning of each step.
+/// When initializing, we only need `index` and `boundary` information.
 #[derive(Copy, Clone, Debug)]
 pub struct Node {
+
+  /// The mass of the node
   pub mass: f32,
+
+  /// The index of the node in a grid
   pub index: Vector3u,
+
+  /// The lagrangian velocity at the node
   pub velocity: Vector3f,
+
+  /// The momentum at the node
   pub momentum: Vector3f,
+
+  /// The accumulated force at the node
   pub force: Vector3f,
-  pub boundary: Option<Boundary>,
+
+  /// The type of boundary. Used to describe the boundary behavior of this node.
+  /// should be default to `Boundary::None`
+  pub boundary: Boundary,
 }
 
 impl Node {
+
+  /// Generate a new node given the index of it in the Grid
   pub fn new(index: Vector3u) -> Self {
     Self {
       index,
@@ -47,10 +87,13 @@ impl Node {
       velocity: Vector3f::zeros(),
       momentum: Vector3f::zeros(),
       force: Vector3f::zeros(),
-      boundary: None,
+      boundary: Boundary::None,
     }
   }
 
+  /// Clean the information of the node
+  ///
+  /// Should set everything but `index` and `boundary` to `0`
   pub fn clean(&mut self) {
     self.mass = 0.0;
     self.velocity = Vector3f::zeros();
@@ -58,31 +101,41 @@ impl Node {
     self.force = Vector3f::zeros();
   }
 
-  pub fn set_boundary_velocities(&mut self) {
-    if let Some(b) = self.boundary {
-      match b {
-        Boundary::SetZero => {
-          self.velocity = Vector3f::zeros();
-        }
-        Boundary::Surface { normal } => {
-          self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
-        }
+  /// Set the boundary velocity.
+  ///
+  /// Depending on the type of boundary this node possess, the velocity will be set accordingly:
+  ///
+  /// - If the node has type `Boundary::None`, it means this node is not on the boundary, and therefore
+  ///   we do nothing to the velocity
+  /// - If the node has type `Boundary::SetZero`, it means that any point touching this node will get
+  ///   no velocity
+  /// - If the node has type `Boundary::Surface`, it's velocity along the `normal` will be discarded
+  pub fn set_boundary_velocity(&mut self) {
+    match self.boundary {
+      Boundary::SetZero => {
+        self.velocity = Vector3f::zeros();
       }
+      Boundary::Surface { normal } => {
+        self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
+      }
+      _ => {}
     }
   }
 }
 
+/// The weight iterator type storing essential information traversing
+/// the neighboring nodes around a point
 pub struct WeightIterator {
-  pub h: f32,
-  pub dim: Vector3u,
-  pub base_node: Vector3i,
-  pub curr_node: Vector3i,
-  pub wx: Vector3f,
-  pub wy: Vector3f,
-  pub wz: Vector3f,
-  pub dwx: Vector3f,
-  pub dwy: Vector3f,
-  pub dwz: Vector3f,
+  h: f32,
+  dim: Vector3u,
+  base_node: Vector3i,
+  curr_node: Vector3i,
+  wx: Vector3f,
+  wy: Vector3f,
+  wz: Vector3f,
+  dwx: Vector3f,
+  dwy: Vector3f,
+  dwz: Vector3f,
 }
 
 impl Iterator for WeightIterator {
@@ -95,20 +148,20 @@ impl Iterator for WeightIterator {
       let j = self.curr_node.y as usize;
       let k = self.curr_node.z as usize;
       if i < 3 && j < 3 && k < 3 {
-        // Get Node
+        // Get node index
         let node_index = self.base_node + self.curr_node;
 
         // Calculate weight
         let wi = self.wx[i];
         let wj = self.wy[j];
         let wk = self.wz[k];
-        let weight = wi * wj * wk;
+        let wijk = wi * wj * wk;
 
         // Calculate weight gradient
-        let dwijkdxi = 0.0; // d (w_{ijk}) / d x_i; TODO
-        let dwijkdxj = 0.0; // d (w_{ijk}) / d x_j; TODO
-        let dwijkdxk = 0.0; // d (w_{ijk}) / d x_k; TODO
-        let grad_w = Vector3f::new(dwijkdxi, dwijkdxj, dwijkdxk);
+        let dwijk_dx = self.dwx[i] * wj * wk / self.h;
+        let dwijk_dy = wi * self.dwy[j] * wk / self.h;
+        let dwijk_dz = wi * wj * self.dwz[k] / self.h;
+        let grad_w = Vector3f::new(dwijk_dx, dwijk_dy, dwijk_dz);
 
         // Compute the `curr_node` for next step
         if self.curr_node.x == 2 {
@@ -130,7 +183,7 @@ impl Iterator for WeightIterator {
         let y_in = 0 <= node_index.y && node_index.y < self.dim.y as i32;
         let z_in = 0 <= node_index.z && node_index.z < self.dim.z as i32;
         if x_in && y_in && z_in {
-          return Some((node_index, weight, grad_w));
+          return Some((node_index, wijk, grad_w));
         }
       } else {
         return None;
@@ -139,14 +192,24 @@ impl Iterator for WeightIterator {
   }
 }
 
+/// The Grid of Node in Lagrangian space
 #[derive(Debug)]
 pub struct Grid {
+
+  /// The distance between each pair of neighbor nodes
   pub h: f32,
+
+  /// Dimension vector; the number of nodes along each axis
   pub dim: Vector3u,
+
+  /// Nodes Array
   pub nodes: Vec<Node>,
 }
 
 impl Grid {
+
+  /// Create a new grid using `dimension` and `h`. All nodes will be initialized
+  /// to initial `0` values.
   pub fn new(dim: Vector3u, h: f32) -> Self {
     let num_nodes = dim.x * dim.y * dim.z;
     let mut nodes = Vec::with_capacity(num_nodes);
@@ -161,18 +224,21 @@ impl Grid {
     Self { h, dim, nodes }
   }
 
+  /// Clean the data of all the nodes
   pub fn clean(&mut self) {
     for node in &mut self.nodes {
       node.clean();
     }
   }
 
+  /// Apply boundary constants to nodes
   pub fn set_boundary_velocities(&mut self) {
     for node in &mut self.nodes {
-      node.set_boundary_velocities();
+      node.set_boundary_velocity();
     }
   }
 
+  /// Get the raw index inside the `nodes` array from `Vector3i`
   fn raw_index(&self, node_index: Vector3i) -> usize {
     let z_comp = self.dim.x * self.dim.y * node_index.z as usize;
     let y_comp = self.dim.x * node_index.y as usize;
@@ -180,18 +246,28 @@ impl Grid {
     z_comp + y_comp + x_comp
   }
 
+  /// Get the node using `Vector3i` node index
   fn get_node(&self, node_index: Vector3i) -> &Node {
     let index = self.raw_index(node_index);
     &self.nodes[index]
   }
 
-  fn get_node_mut(&mut self, cell_index: Vector3i) -> &mut Node {
-    let index = self.raw_index(cell_index);
+  /// Get the mutable node using `Vector3i` node index
+  fn get_node_mut(&mut self, node_index: Vector3i) -> &mut Node {
+    let index = self.raw_index(node_index);
     &mut self.nodes[index]
   }
 
+  /// Get 1d weight given position. Will normalize `pos` to index space.
+  ///
+  /// Returns the base node index, the weights of the three nodes, and the
+  /// weight gradients of the three nodes.
   fn get_weight_1d(&self, pos: f32) -> (i32, Vector3f, Vector3f) {
+
+    // `x` is normalized to index space
     let x = pos / self.h;
+
+    // get the base node around `x`
     let base_node = (x - 0.5).floor();
 
     let mut w = Vector3f::zeros();
@@ -217,7 +293,18 @@ impl Grid {
     (base_node as i32, w, dw)
   }
 
-  pub fn iterate_neighbors(&self, pos: Vector3f) -> WeightIterator {
+  /// Iterate the neighbors. Will get `node_index`, `weight` and `weight_gradient`.
+  /// for each neighbor node.
+  ///
+  /// ## Example usage:
+  ///
+  /// ``` rust
+  /// for (node_index, weight, weight_gradient) in grid.neighbor_weights(pos) {
+  ///   let node = grid.get_node(node_index);
+  ///   ...
+  /// }
+  /// ```
+  fn neighbor_weights(&self, pos: Vector3f) -> WeightIterator {
     let (bnx, wx, dwx) = self.get_weight_1d(pos.x);
     let (bny, wy, dwy) = self.get_weight_1d(pos.y);
     let (bnz, wz, dwz) = self.get_weight_1d(pos.z);
@@ -240,13 +327,20 @@ impl Grid {
   }
 }
 
+/// The World containing all the simulation data of an MPM simulation
 #[derive(Debug)]
 pub struct World {
+
+  /// The grid in Eularian space
   pub grid: Grid,
+
+  /// The particles in Lagrangian space
   pub particles: Vec<Particle>,
 }
 
 impl World {
+
+  /// Generate a new world given the `size` and the `h`
   pub fn new(size: Vector3f, h: f32) -> Self {
     let x_dim = (size.x / h) as usize;
     let y_dim = (size.y / h) as usize;
@@ -256,13 +350,21 @@ impl World {
     Self { grid, particles }
   }
 
+  /// 1. Clean the grid
   fn clean_grid(&mut self) {
     self.grid.clean();
   }
 
+  /// 2. Particle -> Grid Transfer
+  ///
+  /// Assumes that when calling this function, the grid is already cleaned up (e.g. all
+  /// temporary variables like mass, velocity, momentum and force are set to `0`)
+  ///
+  /// Transfer the particle mass and weight to the Grid by accumulating mass and momentum
+  /// on each node.
   fn p2g(&mut self) {
     for par in &self.particles {
-      for (node_index, weight, _) in self.grid.iterate_neighbors(par.position) {
+      for (node_index, weight, _) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node_mut(node_index);
         node.mass += par.mass * weight;
         node.momentum += par.mass * par.velocity * weight;
@@ -270,6 +372,10 @@ impl World {
     }
   }
 
+  /// 3. Transfer the `momentum` into `velocity` for each grid node
+  ///
+  /// If a node has mass `0.0`, then the velocity will be automatically zero; otherwise,
+  /// the velocity of node is simply $frac{momentum}{mass}$.
   fn grid_momentum_to_velocity(&mut self) {
     for node in &mut self.grid.nodes {
       // Check node mass. If 0, then directly set the velocity of node to zero
@@ -281,6 +387,7 @@ impl World {
     }
   }
 
+  /// 4.1. Apply gravity force onto each of the grid node
   fn apply_gravity(&mut self) {
     let g = Vector3f::new(0.0, -9.8, 0.0);
     for node in &mut self.grid.nodes {
@@ -288,10 +395,17 @@ impl World {
     }
   }
 
-  // fn apply_elastic_force(&mut self) {
-  //   // TODO
-  // }
+  /// 4.2. Apply elastic force onto each grid node.
+  ///
+  /// Also needs to take into account the `f` of each particle.
+  fn apply_elastic_force(&mut self) {
+    // TODO
+  }
 
+  /// 4.3. Transfer the force on each grid node into their velocity
+  ///
+  /// $\vec{a} = \frac{f}{m}$
+  /// $\vec{v} = \delta t * \vec{a}$
   fn grid_force_to_velocity(&mut self, dt: f32) {
     for node in &mut self.grid.nodes {
       if node.mass != 0.0 {
@@ -300,29 +414,37 @@ impl World {
     }
   }
 
+  /// 5. Apply boundary condition to the grid nodes
   fn set_boundary_velocities(&mut self) {
     self.grid.set_boundary_velocities();
   }
 
-  // fn evolve_particle_force(&mut self, dt: f32) {
-  //   for par in &mut self.particles {
-  //     let this_fp = par.force;
-  //     let mut grad_vp = Matrix3f::zeros();
-  //     for (node_index, _, grad_w) in self.grid.iterate_neighbors(par.position) {
-  //       let node = self.grid.get_node(node_index);
-  //       grad_vp += node.velocity * grad_w.transpose();
-  //     }
-  //     par.force = (Matrix3f::identity() + dt * grad_vp) * this_fp;
-  //   }
-  // }
+  /// 6. Evolve the particle $F_p$
+  fn evolve_particle_f(&mut self, dt: f32) {
+    for par in &mut self.particles {
+      let this_fp = par.f;
+      let mut grad_vp = Matrix3f::zeros();
+      for (node_index, _, grad_w) in self.grid.neighbor_weights(par.position) {
+        let node = self.grid.get_node(node_index);
+        grad_vp += node.velocity * grad_w.transpose();
+      }
+      par.f = (Matrix3f::identity() + dt * grad_vp) * this_fp;
+    }
+  }
 
+  /// 7. Grid to Particle transfer
+  ///
+  /// # TODO: Use PIC and FLIP
+  ///
+  /// Will clear the particle velocity; accumulate the velocity of neighbor
+  /// nodes onto the particle; and finally move the particle forward
   fn g2p(&mut self, dt: f32) {
     for par in &mut self.particles {
       // First clear the velocity
       par.velocity = Vector3f::zeros();
 
       // Then accumulate velocities from neighbor nodes
-      for (node_index, weight, _) in self.grid.iterate_neighbors(par.position) {
+      for (node_index, weight, _) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node(node_index);
         par.velocity += node.velocity * weight;
       }
@@ -332,6 +454,7 @@ impl World {
     }
   }
 
+  /// Step the world forward by `dt` (delta time).
   pub fn step(&mut self, dt: f32) {
     // 1. Clean grid data by zeroing out everything.
     self.clean_grid();
@@ -343,22 +466,23 @@ impl World {
     self.grid_momentum_to_velocity();
 
     // 4. Apply forces on grid
-    self.apply_gravity();
-    // self.apply_elastic_force();
+    self.apply_gravity(); // 4.1.
+    self.apply_elastic_force(); // 4.2.
 
-    // 4.1. Turn force into velocity
+    // 4.3. Turn force into velocity
     self.grid_force_to_velocity(dt);
 
     // 5. Clean the boundary
     self.set_boundary_velocities();
 
-    // 6. Evolve particle force
-    // self.evolve_particle_force(dt);
+    // 6. Evolve particle $F_p$
+    self.evolve_particle_f(dt);
 
     // 7. Interpolate new velocity back to particles, and move the particles
     self.g2p(dt);
   }
 
+  /// Dump the particles in current state to a file in `.POLY` format.
   pub fn dump(&self, filename: String) -> std::io::Result<()> {
     let mut file = File::create(filename)?;
     file.write(b"POINTS\n")?;
