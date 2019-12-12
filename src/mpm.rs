@@ -6,7 +6,6 @@ use super::math::*;
 /// Particle inside MPM simulation
 #[derive(Copy, Clone, Debug)]
 pub struct Particle {
-
   /// the mass of the particle
   pub mass: f32,
 
@@ -21,11 +20,10 @@ pub struct Particle {
 }
 
 impl Particle {
-
   /// Generate a new particle with given mass and position
   pub fn new(mass: f32, position: Vector3f) -> Self {
     let velocity = Vector3f::zeros();
-    let deformation = Matrix3f::zeros();
+    let deformation = Matrix3f::identity();
     Self {
       mass,
       position,
@@ -38,7 +36,6 @@ impl Particle {
 /// The boundary type information associated with each Node
 #[derive(Copy, Clone, Debug)]
 pub enum Boundary {
-
   /// Not a boundary
   None,
 
@@ -56,7 +53,6 @@ pub enum Boundary {
 /// When initializing, we only need `index` and `boundary` information.
 #[derive(Copy, Clone, Debug)]
 pub struct Node {
-
   /// The mass of the node
   pub mass: f32,
 
@@ -75,7 +71,6 @@ pub struct Node {
 }
 
 impl Node {
-
   /// Generate a new node given the index of it in the Grid
   pub fn new() -> Self {
     Self {
@@ -179,7 +174,11 @@ impl Iterator for WeightIterator {
         let y_in = 0 <= node_index.y && node_index.y < self.dim.y as i32;
         let z_in = 0 <= node_index.z && node_index.z < self.dim.z as i32;
         if x_in && y_in && z_in {
-          let uindex = Vector3u::new(node_index.x as usize, node_index.y as usize, node_index.z as usize);
+          let uindex = Vector3u::new(
+            node_index.x as usize,
+            node_index.y as usize,
+            node_index.z as usize,
+          );
           return Some((uindex, wijk, grad_w));
         }
       } else {
@@ -226,7 +225,6 @@ impl Iterator for NodeIndexIterator {
 /// The Grid of Node in Lagrangian space
 #[derive(Debug)]
 pub struct Grid {
-
   /// The distance between each pair of neighbor nodes
   pub h: f32,
 
@@ -238,7 +236,6 @@ pub struct Grid {
 }
 
 impl Grid {
-
   /// Create a new grid using `dimension` and `h`. All nodes will be initialized
   /// to initial `0` values.
   pub fn new(dim: Vector3u, h: f32) -> Self {
@@ -289,7 +286,6 @@ impl Grid {
   /// Returns the base node index, the weights of the three nodes, and the
   /// weight gradients of the three nodes.
   fn get_weight_1d(&self, pos: f32) -> (i32, Vector3f, Vector3f) {
-
     // `x` is normalized to index space
     let x = pos / self.h;
 
@@ -373,7 +369,6 @@ impl Grid {
 /// The World containing all the simulation data of an MPM simulation
 #[derive(Debug)]
 pub struct World {
-
   /// The grid in Eularian space
   pub grid: Grid,
 
@@ -382,7 +377,6 @@ pub struct World {
 }
 
 impl World {
-
   /// Generate a new world given the `size` and the `h`
   pub fn new(size: Vector3f, h: f32) -> Self {
     let x_dim = (size.x / h) as usize;
@@ -393,6 +387,7 @@ impl World {
     Self { grid, particles }
   }
 
+  /// Put a `SetZero` boundary around the world.
   pub fn put_zero_boundary(&mut self, thickness: f32) {
     let dim = self.grid.dim;
     let num_nodes = (thickness / self.grid.h).ceil() as usize;
@@ -416,22 +411,40 @@ impl World {
     }
   }
 
-  pub fn put_boundary(&mut self, thickness: f32) {
+  /// Put a surface boundary around the world. Each side will have normal pointing
+  /// towards inside. The boundary thickness is given by the argument `thickness`.
+  ///
+  /// ## Arguments
+  ///
+  /// - `thickness` the thickness of the boundary, in real space
+  pub fn put_surface_boundary(&mut self, thickness: f32) {
     let dim = self.grid.dim;
     let num_nodes = (thickness / self.grid.h).ceil() as usize;
     for node_index in self.grid.indices() {
       let boundary = if node_index.x < num_nodes {
-        Boundary::Surface { normal: Vector3f::new(1.0, 0.0, 0.0) }
+        Boundary::Surface {
+          normal: Vector3f::new(1.0, 0.0, 0.0),
+        }
       } else if node_index.x > dim.x - num_nodes {
-        Boundary::Surface { normal: Vector3f::new(-1.0, 0.0, 0.0) }
+        Boundary::Surface {
+          normal: Vector3f::new(-1.0, 0.0, 0.0),
+        }
       } else if node_index.y < num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, 1.0, 0.0) }
+        Boundary::Surface {
+          normal: Vector3f::new(0.0, 1.0, 0.0),
+        }
       } else if node_index.y > dim.y - num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, -1.0, 0.0) }
+        Boundary::Surface {
+          normal: Vector3f::new(0.0, -1.0, 0.0),
+        }
       } else if node_index.z < num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, 1.0) }
+        Boundary::Surface {
+          normal: Vector3f::new(0.0, 0.0, 1.0),
+        }
       } else if node_index.z > dim.z - num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, -1.0) }
+        Boundary::Surface {
+          normal: Vector3f::new(0.0, 0.0, -1.0),
+        }
       } else {
         Boundary::None
       };
@@ -439,13 +452,16 @@ impl World {
     }
   }
 
-  pub fn put_ball(
-    &mut self,
-    center: Vector3f,
-    radius: f32,
-    num_particles: usize,
-    total_mass: f32,
-  ) {
+  /// Create a ball filled with particles
+  ///
+  /// ## Arguments
+  ///
+  /// - `center` The center of the ball
+  /// - `radius` The radius of the ball
+  /// - `num_particles` The number of particles needed inside that ball
+  /// - `total_mass` The total mass of the whole ball. The mass will be distributed onto each particle
+  ///   uniformly.
+  pub fn put_ball(&mut self, center: Vector3f, radius: f32, num_particles: usize, total_mass: f32) {
     let ind_mass = total_mass / (num_particles as f32);
     for _ in 0..num_particles {
       let pos = sample_point_in_sphere(center, radius);
@@ -499,11 +515,47 @@ impl World {
     }
   }
 
+  fn dj_da(m: Matrix3f) -> Matrix3f {
+    let (a, b, c, d, e, f, g, h, i) = (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+    Matrix3f::new(e * i - f * h, f * g - d * i, d * h - e * g,
+                  c * h - b * i, a * i - b * d, b * g - a * h,
+                  b * f - c * e, c * d - a * f, a * e - b * d)
+  }
+
+  /// Find $R = U \times V^T$ given $[U, \sigma, V] = svd(M)$ and $M$
+  fn polar_svd_r(mat: Matrix3f) -> Matrix3f {
+    let svd = mat.svd(true, true);
+    match (svd.u, svd.v_t) {
+      (Some(u), Some(v_t)) => {
+        // TODO: Polarize???????
+        u * v_t
+      },
+      _ => panic!("Cannot decompose svd")
+    }
+  }
+
+  fn fixed_corotated(deformation: Matrix3f, mu: f32, lambda: f32) -> Matrix3f {
+    let r = Self::polar_svd_r(deformation);
+    let j = deformation.determinant();
+    let jf_t = Self::dj_da(deformation);
+    2.0 * mu * (deformation - r) + lambda * (j - 1.0) * jf_t
+  }
+
   /// 4.2. Apply elastic force onto each grid node.
   ///
   /// Also needs to take into account the `f` of each particle.
+  ///
+  /// # TODO: Make the constants per-particle
   fn apply_elastic_force(&mut self) {
-    // TODO
+    for par in &mut self.particles {
+      let vp0 = 0.0001;
+      let stress = Self::fixed_corotated(par.deformation, 3846.153846, 5769.230769);
+      let vp0pft = vp0 * stress * par.deformation.transpose();
+      for (node_index, _, grad_w) in self.grid.neighbor_weights(par.position) {
+        let node = self.grid.get_node_mut(node_index);
+        node.force -= vp0pft * grad_w;
+      }
+    }
   }
 
   /// 4.3. Transfer the force on each grid node into their velocity

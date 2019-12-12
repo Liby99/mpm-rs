@@ -10,9 +10,9 @@ fn main() {
   let mut world = World::new(Vector3f::new(1.0, 1.0, 1.0), 0.02);
 
   // Build the boundaries and so on
-  put_zero_boundary(&mut world, 0.03);
-  put_ball(&mut world, Vector3f::new(0.45, 0.55, 0.45), 0.1, 10000, 1.0);
-  put_ball(&mut world, Vector3f::new(0.50, 0.75, 0.50), 0.05, 1000, 1.0);
+  world.put_zero_boundary(0.03);
+  world.put_ball(Vector3f::new(0.45, 0.55, 0.45), 0.1, 10000, 1.0);
+  world.put_ball(Vector3f::new(0.50, 0.75, 0.50), 0.05, 1000, 1.0);
 
   // Then build the driver
   let mut driver = Driver::new(world, 0.001);

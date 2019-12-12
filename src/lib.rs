@@ -1,11 +1,11 @@
-extern crate rand;
-extern crate pbr;
 extern crate nalgebra as na;
+extern crate pbr;
+extern crate rand;
 
+mod driver;
 mod math;
 mod mpm;
-mod driver;
 
+pub use driver::*;
 pub use math::*;
 pub use mpm::*;
-pub use driver::*;

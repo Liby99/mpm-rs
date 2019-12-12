@@ -13,7 +13,6 @@ impl Driver {
   }
 
   pub fn run(&mut self, outdir: String, num_steps: usize) -> std::io::Result<()> {
-
     // First dump the default frame
     let filename = format!("{}/{}.poly", outdir, 0);
     self.world.dump(filename)?;
