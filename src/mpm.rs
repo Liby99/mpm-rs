@@ -523,11 +523,27 @@ impl World {
   }
 
   /// Find $R = U \times V^T$ given $[U, \sigma, V] = svd(M)$ and $M$
-  fn polar_svd_r(mat: Matrix3f) -> Matrix3f {
-    let svd = mat.svd(true, true);
+  fn polar_svd_r(m: Matrix3f) -> Matrix3f {
+    // print!("before svd: {:?}... ", m);
+    // if let Err(err) = std::io::stdout().flush() { panic!(err) }
+    let svd = m.svd(true, true);
+    // println!("done!");
     match (svd.u, svd.v_t) {
       (Some(u), Some(v_t)) => {
-        // TODO: Polarize???????
+        let u = if u.determinant() < 0.0 {
+          Matrix3f::new(u[0], u[1], -u[2],
+                        u[3], u[4], -u[5],
+                        u[6], u[7], -u[8])
+        } else {
+          u
+        };
+        let v_t = if v_t.determinant() < 0.0 {
+          Matrix3f::new(v_t[0], v_t[1], v_t[2],
+                        v_t[3], v_t[4], v_t[5],
+                        -v_t[6], -v_t[7], -v_t[8])
+        } else {
+          v_t
+        };
         u * v_t
       },
       _ => panic!("Cannot decompose svd")
@@ -575,16 +591,15 @@ impl World {
     self.grid.set_boundary_velocities();
   }
 
-  /// 6. Evolve the particle $F_p$
-  fn evolve_particle_f(&mut self, dt: f32) {
+  /// 6. Evolve the particle deformation
+  fn evolve_particle_deformation(&mut self, dt: f32) {
     for par in &mut self.particles {
-      let this_fp = par.deformation;
       let mut grad_vp = Matrix3f::zeros();
       for (node_index, _, grad_w) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node(node_index);
         grad_vp += node.velocity * grad_w.transpose();
       }
-      par.deformation = (Matrix3f::identity() + dt * grad_vp) * this_fp;
+      par.deformation = (Matrix3f::identity() + dt * grad_vp) * par.deformation;
     }
   }
 
@@ -631,8 +646,8 @@ impl World {
     // 5. Clean the boundary
     self.set_boundary_velocities();
 
-    // 6. Evolve particle $F_p$
-    self.evolve_particle_f(dt);
+    // 6. Evolve particle deformation
+    self.evolve_particle_deformation(dt);
 
     // 7. Interpolate new velocity back to particles, and move the particles
     self.g2p(dt);
