@@ -8,14 +8,18 @@ pub struct Particle {
   pub mass: f32,
   pub position: Vector3f,
   pub velocity: Vector3f,
-  pub force: Matrix3f,
+  // pub force: Matrix3f,
 }
 
 impl Particle {
   pub fn new(mass: f32, position: Vector3f) -> Self {
     let velocity = Vector3f::zeros();
-    let force = Matrix3f::zeros();
-    Self { mass, position, velocity, force }
+    // let force = Matrix3f::zeros();
+    Self {
+      mass,
+      position,
+      velocity, /*force*/
+    }
   }
 }
 
@@ -59,7 +63,7 @@ impl Node {
       match b {
         Boundary::SetZero => {
           self.velocity = Vector3f::zeros();
-        },
+        }
         Boundary::Surface { normal } => {
           self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
         }
@@ -82,7 +86,6 @@ pub struct WeightIterator {
 }
 
 impl Iterator for WeightIterator {
-
   /// (Node Index, Weight, Weight Gradient)
   type Item = (Vector3i, f32, Vector3f);
 
@@ -92,7 +95,6 @@ impl Iterator for WeightIterator {
       let j = self.curr_node.y as usize;
       let k = self.curr_node.z as usize;
       if i < 3 && j < 3 && k < 3 {
-
         // Get Node
         let node_index = self.base_node + self.curr_node;
 
@@ -123,16 +125,15 @@ impl Iterator for WeightIterator {
         }
 
         // Check if node is inside the grid
+        // If not, then the loop will continue
         let x_in = 0 <= node_index.x && node_index.x < self.dim.x as i32;
         let y_in = 0 <= node_index.y && node_index.y < self.dim.y as i32;
         let z_in = 0 <= node_index.z && node_index.z < self.dim.z as i32;
         if x_in && y_in && z_in {
-          return Some((node_index, weight, grad_w))
+          return Some((node_index, weight, grad_w));
         }
-
-        // If not, then the loop will continue
       } else {
-        return None
+        return None;
       }
     }
   }
@@ -196,7 +197,7 @@ impl Grid {
     let mut w = Vector3f::zeros();
     let mut dw = Vector3f::zeros();
 
-    let d0 = x - base_node + 1.0;
+    let d0 = x - base_node;
     let z = 1.5 - d0;
     let z2 = z * z;
     w.x = 0.5 * z2;
@@ -225,8 +226,16 @@ impl Grid {
     let base_node = Vector3i::new(bnx, bny, bnz);
     let curr_node = Vector3i::zeros();
     WeightIterator {
-      h, dim, base_node, curr_node,
-      wx, wy, wz, dwx, dwy, dwz
+      h,
+      dim,
+      base_node,
+      curr_node,
+      wx,
+      wy,
+      wz,
+      dwx,
+      dwy,
+      dwz,
     }
   }
 }
@@ -279,9 +288,9 @@ impl World {
     }
   }
 
-  fn apply_elastic_force(&mut self) {
-    // TODO
-  }
+  // fn apply_elastic_force(&mut self) {
+  //   // TODO
+  // }
 
   fn grid_force_to_velocity(&mut self, dt: f32) {
     for node in &mut self.grid.nodes {
@@ -295,21 +304,20 @@ impl World {
     self.grid.set_boundary_velocities();
   }
 
-  fn evolve_particle_force(&mut self, dt: f32) {
-    for par in &mut self.particles {
-      let this_fp = par.force;
-      let mut grad_vp = Matrix3f::zeros();
-      for (node_index, _, grad_w) in self.grid.iterate_neighbors(par.position) {
-        let node = self.grid.get_node(node_index);
-        grad_vp += node.velocity * grad_w.transpose();
-      }
-      par.force = (Matrix3f::identity() + dt * grad_vp) * this_fp;
-    }
-  }
+  // fn evolve_particle_force(&mut self, dt: f32) {
+  //   for par in &mut self.particles {
+  //     let this_fp = par.force;
+  //     let mut grad_vp = Matrix3f::zeros();
+  //     for (node_index, _, grad_w) in self.grid.iterate_neighbors(par.position) {
+  //       let node = self.grid.get_node(node_index);
+  //       grad_vp += node.velocity * grad_w.transpose();
+  //     }
+  //     par.force = (Matrix3f::identity() + dt * grad_vp) * this_fp;
+  //   }
+  // }
 
   fn g2p(&mut self, dt: f32) {
     for par in &mut self.particles {
-
       // First clear the velocity
       par.velocity = Vector3f::zeros();
 
@@ -325,7 +333,6 @@ impl World {
   }
 
   pub fn step(&mut self, dt: f32) {
-
     // 1. Clean grid data by zeroing out everything.
     self.clean_grid();
 
@@ -337,7 +344,7 @@ impl World {
 
     // 4. Apply forces on grid
     self.apply_gravity();
-    self.apply_elastic_force();
+    // self.apply_elastic_force();
 
     // 4.1. Turn force into velocity
     self.grid_force_to_velocity(dt);
@@ -346,7 +353,7 @@ impl World {
     self.set_boundary_velocities();
 
     // 6. Evolve particle force
-    self.evolve_particle_force(dt);
+    // self.evolve_particle_force(dt);
 
     // 7. Interpolate new velocity back to particles, and move the particles
     self.g2p(dt);
