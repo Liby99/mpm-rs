@@ -16,8 +16,8 @@ pub struct Particle {
   /// the velocity of the particle
   pub velocity: Vector3f,
 
-  /// $F_p$
-  pub f: Matrix3f,
+  /// $F_p$ deformation gradient
+  pub deformation: Matrix3f,
 }
 
 impl Particle {
@@ -25,12 +25,12 @@ impl Particle {
   /// Generate a new particle with given mass and position
   pub fn new(mass: f32, position: Vector3f) -> Self {
     let velocity = Vector3f::zeros();
-    let f = Matrix3f::zeros();
+    let deformation = Matrix3f::zeros();
     Self {
       mass,
       position,
       velocity,
-      f,
+      deformation,
     }
   }
 }
@@ -60,9 +60,6 @@ pub struct Node {
   /// The mass of the node
   pub mass: f32,
 
-  /// The index of the node in a grid
-  pub index: Vector3u,
-
   /// The lagrangian velocity at the node
   pub velocity: Vector3f,
 
@@ -80,9 +77,8 @@ pub struct Node {
 impl Node {
 
   /// Generate a new node given the index of it in the Grid
-  pub fn new(index: Vector3u) -> Self {
+  pub fn new() -> Self {
     Self {
-      index,
       mass: 0.0,
       velocity: Vector3f::zeros(),
       momentum: Vector3f::zeros(),
@@ -140,7 +136,7 @@ pub struct WeightIterator {
 
 impl Iterator for WeightIterator {
   /// (Node Index, Weight, Weight Gradient)
-  type Item = (Vector3i, f32, Vector3f);
+  type Item = (Vector3u, f32, Vector3f);
 
   fn next(&mut self) -> Option<Self::Item> {
     loop {
@@ -183,11 +179,46 @@ impl Iterator for WeightIterator {
         let y_in = 0 <= node_index.y && node_index.y < self.dim.y as i32;
         let z_in = 0 <= node_index.z && node_index.z < self.dim.z as i32;
         if x_in && y_in && z_in {
-          return Some((node_index, wijk, grad_w));
+          let uindex = Vector3u::new(node_index.x as usize, node_index.y as usize, node_index.z as usize);
+          return Some((uindex, wijk, grad_w));
         }
       } else {
         return None;
       }
+    }
+  }
+}
+
+/// Node index iterator iterate through all the indices of a grid
+pub struct NodeIndexIterator {
+  dim: Vector3u,
+  curr: Vector3u,
+}
+
+impl Iterator for NodeIndexIterator {
+  type Item = Vector3u;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let x_in = self.curr.x < self.dim.x;
+    let y_in = self.curr.y < self.dim.y;
+    let z_in = self.curr.z < self.dim.z;
+    if x_in && y_in && z_in {
+      let result = self.curr;
+      if self.curr.x == self.dim.x - 1 {
+        if self.curr.y == self.dim.y - 1 {
+          self.curr.z += 1;
+          self.curr.y = 0;
+          self.curr.x = 0;
+        } else {
+          self.curr.y += 1;
+          self.curr.x = 0;
+        }
+      } else {
+        self.curr.x += 1;
+      }
+      Some(result)
+    } else {
+      None
     }
   }
 }
@@ -203,7 +234,7 @@ pub struct Grid {
   pub dim: Vector3u,
 
   /// Nodes Array
-  pub nodes: Vec<Node>,
+  nodes: Vec<Node>,
 }
 
 impl Grid {
@@ -213,13 +244,8 @@ impl Grid {
   pub fn new(dim: Vector3u, h: f32) -> Self {
     let num_nodes = dim.x * dim.y * dim.z;
     let mut nodes = Vec::with_capacity(num_nodes);
-    for z in 0..dim.z {
-      for y in 0..dim.y {
-        for x in 0..dim.x {
-          let index = Vector3u::new(x, y, z);
-          nodes.push(Node::new(index));
-        }
-      }
+    for _ in 0..num_nodes {
+      nodes.push(Node::new());
     }
     Self { h, dim, nodes }
   }
@@ -239,21 +265,21 @@ impl Grid {
   }
 
   /// Get the raw index inside the `nodes` array from `Vector3i`
-  fn raw_index(&self, node_index: Vector3i) -> usize {
-    let z_comp = self.dim.x * self.dim.y * node_index.z as usize;
-    let y_comp = self.dim.x * node_index.y as usize;
-    let x_comp = node_index.x as usize;
+  fn raw_index(&self, node_index: Vector3u) -> usize {
+    let z_comp = self.dim.x * self.dim.y * node_index.z;
+    let y_comp = self.dim.x * node_index.y;
+    let x_comp = node_index.x;
     z_comp + y_comp + x_comp
   }
 
   /// Get the node using `Vector3i` node index
-  fn get_node(&self, node_index: Vector3i) -> &Node {
+  pub fn get_node(&self, node_index: Vector3u) -> &Node {
     let index = self.raw_index(node_index);
     &self.nodes[index]
   }
 
   /// Get the mutable node using `Vector3i` node index
-  fn get_node_mut(&mut self, node_index: Vector3i) -> &mut Node {
+  pub fn get_node_mut(&mut self, node_index: Vector3u) -> &mut Node {
     let index = self.raw_index(node_index);
     &mut self.nodes[index]
   }
@@ -296,12 +322,12 @@ impl Grid {
   /// Iterate the neighbors. Will get `node_index`, `weight` and `weight_gradient`.
   /// for each neighbor node.
   ///
-  /// ## Example usage:
+  /// ## Example usage
   ///
   /// ``` rust
   /// for (node_index, weight, weight_gradient) in grid.neighbor_weights(pos) {
   ///   let node = grid.get_node(node_index);
-  ///   ...
+  ///   // Do things with the node...
   /// }
   /// ```
   fn neighbor_weights(&self, pos: Vector3f) -> WeightIterator {
@@ -323,6 +349,23 @@ impl Grid {
       dwx,
       dwy,
       dwz,
+    }
+  }
+
+  /// Iterate indices of the grid
+  ///
+  /// ## Example usage
+  ///
+  /// ``` rust
+  /// for node_index in grid.indices() {
+  ///   let node = grid.get_node(node_index);
+  ///   // Do things with the node...
+  /// }
+  /// ```
+  pub fn indices(&self) -> NodeIndexIterator {
+    NodeIndexIterator {
+      dim: self.dim,
+      curr: Vector3u::zeros(),
     }
   }
 }
@@ -348,6 +391,67 @@ impl World {
     let grid = Grid::new(Vector3u::new(x_dim, y_dim, z_dim), h);
     let particles = vec![];
     Self { grid, particles }
+  }
+
+  pub fn put_zero_boundary(&mut self, thickness: f32) {
+    let dim = self.grid.dim;
+    let num_nodes = (thickness / self.grid.h).ceil() as usize;
+    for node_index in self.grid.indices() {
+      let boundary = if node_index.x < num_nodes {
+        Boundary::SetZero
+      } else if node_index.x > dim.x - num_nodes {
+        Boundary::SetZero
+      } else if node_index.y < num_nodes {
+        Boundary::SetZero
+      } else if node_index.y > dim.y - num_nodes {
+        Boundary::SetZero
+      } else if node_index.z < num_nodes {
+        Boundary::SetZero
+      } else if node_index.z > dim.z - num_nodes {
+        Boundary::SetZero
+      } else {
+        Boundary::None
+      };
+      self.grid.get_node_mut(node_index).boundary = boundary;
+    }
+  }
+
+  pub fn put_boundary(&mut self, thickness: f32) {
+    let dim = self.grid.dim;
+    let num_nodes = (thickness / self.grid.h).ceil() as usize;
+    for node_index in self.grid.indices() {
+      let boundary = if node_index.x < num_nodes {
+        Boundary::Surface { normal: Vector3f::new(1.0, 0.0, 0.0) }
+      } else if node_index.x > dim.x - num_nodes {
+        Boundary::Surface { normal: Vector3f::new(-1.0, 0.0, 0.0) }
+      } else if node_index.y < num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, 1.0, 0.0) }
+      } else if node_index.y > dim.y - num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, -1.0, 0.0) }
+      } else if node_index.z < num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, 1.0) }
+      } else if node_index.z > dim.z - num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, -1.0) }
+      } else {
+        Boundary::None
+      };
+      self.grid.get_node_mut(node_index).boundary = boundary;
+    }
+  }
+
+  pub fn put_ball(
+    &mut self,
+    center: Vector3f,
+    radius: f32,
+    num_particles: usize,
+    total_mass: f32,
+  ) {
+    let ind_mass = total_mass / (num_particles as f32);
+    for _ in 0..num_particles {
+      let pos = sample_point_in_sphere(center, radius);
+      let par = Particle::new(ind_mass, pos);
+      self.particles.push(par);
+    }
   }
 
   /// 1. Clean the grid
@@ -422,13 +526,13 @@ impl World {
   /// 6. Evolve the particle $F_p$
   fn evolve_particle_f(&mut self, dt: f32) {
     for par in &mut self.particles {
-      let this_fp = par.f;
+      let this_fp = par.deformation;
       let mut grad_vp = Matrix3f::zeros();
       for (node_index, _, grad_w) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node(node_index);
         grad_vp += node.velocity * grad_w.transpose();
       }
-      par.f = (Matrix3f::identity() + dt * grad_vp) * this_fp;
+      par.deformation = (Matrix3f::identity() + dt * grad_vp) * this_fp;
     }
   }
 
