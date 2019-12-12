@@ -7,6 +7,14 @@
     {
       "type": "lldb",
       "request": "launch",
+      "name": "Debug Two Balls",
+      "program": "${workspaceFolder}/target/debug/two_balls",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
       "name": "Debug Single Ball",
       "program": "${workspaceFolder}/target/debug/single_ball",
       "args": [],

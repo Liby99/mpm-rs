@@ -16,6 +16,7 @@
 2. Get rid of the `Nan`...
 3. Is the current result enough?
 4. Can we make $\mu$, $\lambda$ and other numbers per-particle? How does the particle insertion work then?
+5. How to visualize this point cloud?
 
 ## Dec 11, 2019
 
