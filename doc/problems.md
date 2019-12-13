@@ -18,6 +18,11 @@
 4. Can we make $\mu$, $\lambda$ and other numbers per-particle? How does the particle insertion work then?
 5. How to visualize this point cloud?
 
+Formulas:
+
+$$\bold{P} = \frac{\partial \Psi}{\partial \bold{F}}
+   = 2\mu (\bold{F} - \bold{R}) + \lambda (J - 1) J \bold{F}^{-T}$$
+
 ## Dec 11, 2019
 
 1. Sometimes particles still go through boundary? Is there any ususally used parameters?

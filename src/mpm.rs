@@ -9,6 +9,9 @@ pub struct Particle {
   /// the mass of the particle
   pub mass: f32,
 
+  /// The volume of this particle
+  pub volume: f32,
+
   /// the position of the particle
   pub position: Vector3f,
 
@@ -21,11 +24,12 @@ pub struct Particle {
 
 impl Particle {
   /// Generate a new particle with given mass and position
-  pub fn new(mass: f32, position: Vector3f) -> Self {
+  pub fn new(mass: f32, volume: f32, position: Vector3f) -> Self {
     let velocity = Vector3f::zeros();
     let deformation = Matrix3f::identity();
     Self {
       mass,
+      volume,
       position,
       velocity,
       deformation,
@@ -462,10 +466,12 @@ impl World {
   /// - `total_mass` The total mass of the whole ball. The mass will be distributed onto each particle
   ///   uniformly.
   pub fn put_ball(&mut self, center: Vector3f, radius: f32, num_particles: usize, total_mass: f32) {
+    let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = total_mass / (num_particles as f32);
+    let ind_volume = total_volume / (num_particles as f32);
     for _ in 0..num_particles {
       let pos = sample_point_in_sphere(center, radius);
-      let par = Particle::new(ind_mass, pos);
+      let par = Particle::new(ind_mass, ind_volume, pos);
       self.particles.push(par);
     }
   }
@@ -515,46 +521,112 @@ impl World {
     }
   }
 
-  fn dj_da(m: Matrix3f) -> Matrix3f {
-    let (a, b, c, d, e, f, g, h, i) = (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
-    Matrix3f::new(e * i - f * h, f * g - d * i, d * h - e * g,
-                  c * h - b * i, a * i - b * d, b * g - a * h,
-                  b * f - c * e, c * d - a * f, a * e - b * d)
+  /// Compute the derivative of Jacobian with respect to the matrix.
+  ///
+  /// F = [ a b c 1 0 0
+  ///       d e f 0 1 0
+  ///       g h i 0 0 1]
+  ///
+  /// $$\frac{d J}{d F}$$
+  ///
+  /// F = [ a b c
+  ///       d e f
+  ///       g h i ]
+  ///
+  /// J = det(F) = aei + bfg + cdh - ceg - bdi - fha
+  ///
+  /// dJ/da = ei - fh
+  /// dJ/db = fg - di
+  /// dJ/dc = dh - eg
+  /// dJ/dd = ch - bi
+  /// dJ/de = ai - cg
+  /// dJ/df = bg - ha
+  /// dJ/dg = bf - ce
+  /// dJ/dh = cd - fa
+  /// dJ/di = ae - bd
+  ///
+  /// Note:
+  ///
+  /// Calculate $JF^{-T} = J(F^{-1})^T$
+  ///
+  /// F^{-1} = 1/J * Adj(F)
+  /// J(F^{-1})^T = Adj(F)^T
+  /// Adj(F) = dJ/d(F^T)
+  /// Adj(F)^T = Adj(F^T) = dJ/dF
+  fn dj_df(m: Matrix3f) -> Matrix3f {
+    let (a, b, c,
+         d, e, f,
+         g, h, i) = (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+    Matrix3f::new(
+      e * i - f * h,
+      f * g - d * i,
+      d * h - e * g,
+      c * h - b * i,
+      a * i - c * g,
+      b * g - a * h,
+      b * f - c * e,
+      c * d - a * f,
+      a * e - b * d,
+    )
   }
 
   /// Find $R = U \times V^T$ given $[U, \sigma, V] = svd(M)$ and $M$
-  fn polar_svd_r(m: Matrix3f) -> Matrix3f {
-    // print!("before svd: {:?}... ", m);
-    // if let Err(err) = std::io::stdout().flush() { panic!(err) }
+  ///
+  /// (F, R)
+  ///
+  /// F = U * \Sigma * V^T
+  /// R = U * V^T
+  fn polar_svd_r(m: Matrix3f) -> (Matrix3f, Matrix3f) {
     let svd = m.svd(true, true);
-    // println!("done!");
     match (svd.u, svd.v_t) {
       (Some(u), Some(v_t)) => {
-        let u = if u.determinant() < 0.0 {
-          Matrix3f::new(u[0], u[1], -u[2],
-                        u[3], u[4], -u[5],
-                        u[6], u[7], -u[8])
+        let sigma = svd.singular_values;
+
+        // Invert the related U and Sigma component
+        let (u, sigma) = if u.determinant() < 0.0 {
+          (
+            Matrix3f::new(
+              u[0], u[1], -u[2],
+              u[3], u[4], -u[5],
+              u[6], u[7], -u[8],
+            ),
+            Vector3f::new(sigma[0], sigma[1], -sigma[2]),
+          )
         } else {
-          u
+          (u, sigma)
         };
-        let v_t = if v_t.determinant() < 0.0 {
-          Matrix3f::new(v_t[0], v_t[1], v_t[2],
-                        v_t[3], v_t[4], v_t[5],
-                        -v_t[6], -v_t[7], -v_t[8])
+        assert!(u.determinant() >= 0.0);
+
+        // Invert the related V^T and Sigma component
+        let (v_t, sigma) = if v_t.determinant() < 0.0 {
+          (
+            Matrix3f::new(
+              v_t[0], v_t[1], v_t[2],
+              v_t[3], v_t[4], v_t[5],
+              -v_t[6], -v_t[7], -v_t[8],
+            ),
+            Vector3f::new(sigma[0], sigma[1], -sigma[2]),
+          )
         } else {
-          v_t
+          (v_t, sigma)
         };
-        u * v_t
-      },
-      _ => panic!("Cannot decompose svd")
+        assert!(v_t.determinant() >= 0.0);
+
+        let f = u * Matrix3f::from_diagonal(&sigma) * v_t;
+        let r = u * v_t;
+        (f, r)
+      }
+      _ => panic!("Cannot decompose svd"),
     }
   }
 
+  /// Find $\bold{P} = \frac{\partial \Phi}{\partial \bold{F}}$
   fn fixed_corotated(deformation: Matrix3f, mu: f32, lambda: f32) -> Matrix3f {
-    let r = Self::polar_svd_r(deformation);
-    let j = deformation.determinant();
-    let jf_t = Self::dj_da(deformation);
-    2.0 * mu * (deformation - r) + lambda * (j - 1.0) * jf_t
+    let (f, r) = Self::polar_svd_r(deformation);
+    let j = f.determinant(); // J > 0
+    assert!(j >= 0.0);
+    let jf_t = Self::dj_df(f);
+    2.0 * mu * (f - r) + lambda * (j - 1.0) * jf_t
   }
 
   /// 4.2. Apply elastic force onto each grid node.
@@ -564,9 +636,9 @@ impl World {
   /// # TODO: Make the constants per-particle
   fn apply_elastic_force(&mut self) {
     for par in &mut self.particles {
-      let vp0 = 0.000002;
-      let stress = Self::fixed_corotated(par.deformation, 3846.153846, 5769.230769);
-      let vp0pft = vp0 * stress * par.deformation.transpose();
+      // let stress = Self::fixed_corotated(par.deformation, 3846.153846, 5769.230769);
+      let stress = Self::fixed_corotated(par.deformation, 10.0, 10.0);
+      let vp0pft = par.volume * stress * par.deformation.transpose();
       for (node_index, _, grad_w) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node_mut(node_index);
         node.force -= vp0pft * grad_w;
@@ -599,13 +671,11 @@ impl World {
         let node = self.grid.get_node(node_index);
         grad_vp += node.velocity * grad_w.transpose();
       }
-      par.deformation = (Matrix3f::identity() + dt * grad_vp) * par.deformation;
+      par.deformation *= Matrix3f::identity() + dt * grad_vp;
     }
   }
 
   /// 7. Grid to Particle transfer
-  ///
-  /// # TODO: Use PIC and FLIP
   ///
   /// Will clear the particle velocity; accumulate the velocity of neighbor
   /// nodes onto the particle; and finally move the particle forward
@@ -639,7 +709,12 @@ impl World {
     // 2.1. save the curr set of velocities in nodes. These velocities came from
     // all the left-over particle momentum. These velocities will be later used when
     // doing g2p.
-    let vgn = self.grid.nodes.iter().map(|node| node.velocity).collect::<Vec<_>>();
+    let vgn = self
+      .grid
+      .nodes
+      .iter()
+      .map(|node| node.velocity)
+      .collect::<Vec<_>>();
 
     // 3. Go over all grid nodes, convert momentum to velocity
     self.grid_momentum_to_velocity();
