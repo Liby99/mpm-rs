@@ -156,6 +156,7 @@ impl Iterator for WeightIterator {
         let dwijk_dx = self.dwx[i] * wj * wk / self.h;
         let dwijk_dy = wi * self.dwy[j] * wk / self.h;
         let dwijk_dz = wi * wj * self.dwz[k] / self.h;
+        assert!(!dwijk_dx.is_nan() && !dwijk_dy.is_nan() && !dwijk_dz.is_nan());
         let grad_w = Vector3f::new(dwijk_dx, dwijk_dy, dwijk_dz);
 
         // Compute the `curr_node` for next step
@@ -679,22 +680,20 @@ impl World {
   ///
   /// Will clear the particle velocity; accumulate the velocity of neighbor
   /// nodes onto the particle; and finally move the particle forward
-  fn g2p(&mut self, dt: f32, vgn: Vec<Vector3f>) {
+  fn g2p(&mut self, dt: f32) {
     for par in &mut self.particles {
-      let mut vpic = Vector3f::zeros();
-      let mut vflip = par.velocity;
+
+      // First clear the velocity
+      par.velocity = Vector3f::zeros();
 
       // Accumulate velocities from neighbor nodes
       for (node_index, weight, _) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node(node_index);
-        let raw_index = self.grid.raw_index(node_index);
-        vpic += weight * vgn[raw_index];
-        vflip += weight * (node.velocity - vgn[raw_index]);
+        par.velocity += weight * node.velocity;
       }
 
       // Finally move the particles using the velocity
-      par.velocity = 0.05 * vpic + 0.95 * vflip;
-      par.position += dt * vpic;
+      par.position += dt * par.velocity;
     }
   }
 
@@ -705,16 +704,6 @@ impl World {
 
     // 2. Transfer particles to grid, will give mass and momentum to grid nodes
     self.p2g();
-
-    // 2.1. save the curr set of velocities in nodes. These velocities came from
-    // all the left-over particle momentum. These velocities will be later used when
-    // doing g2p.
-    let vgn = self
-      .grid
-      .nodes
-      .iter()
-      .map(|node| node.velocity)
-      .collect::<Vec<_>>();
 
     // 3. Go over all grid nodes, convert momentum to velocity
     self.grid_momentum_to_velocity();
@@ -733,7 +722,7 @@ impl World {
     self.evolve_particle_deformation(dt);
 
     // 7. Interpolate new velocity back to particles, and move the particles
-    self.g2p(dt, vgn);
+    self.g2p(dt);
   }
 
   /// Dump the particles in current state to a file in `.POLY` format.
