@@ -10,7 +10,8 @@
       "name": "Debug Two Balls",
       "program": "${workspaceFolder}/target/debug/two_balls",
       "args": [],
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build"
     },
     {
       "type": "lldb",
@@ -18,7 +19,8 @@
       "name": "Debug Single Ball",
       "program": "${workspaceFolder}/target/debug/single_ball",
       "args": [],
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build"
     }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build",
+      "type": "shell",
+      "options": {
+        "shell": {
+          "executable": "/home/liby99/local/bin/fish",
+          "args": ["-c"]
+        }
+      },
+      "command": "cargo build",
+    }
+  ]
+}
