@@ -573,49 +573,37 @@ impl World {
 
   /// Find $R = U \times V^T$ given $[U, \sigma, V] = svd(M)$ and $M$
   ///
-  /// (F, R)
-  ///
-  /// F = U * \Sigma * V^T
-  /// R = U * V^T
-  fn polar_svd_r(m: Matrix3f) -> (Matrix3f, Matrix3f) {
+  /// $$R = U * V^T$$
+  fn polar_svd_r(m: Matrix3f) -> Matrix3f {
     let svd = m.svd(true, true);
     match (svd.u, svd.v_t) {
       (Some(u), Some(v_t)) => {
-        let sigma = svd.singular_values;
-
         // Invert the related U and Sigma component
-        let (u, sigma) = if u.determinant() < 0.0 {
-          (
-            Matrix3f::new(
-              u[0], u[1], -u[2],
-              u[3], u[4], -u[5],
-              u[6], u[7], -u[8],
-            ),
-            Vector3f::new(sigma[0], sigma[1], -sigma[2]),
+        let u = if u.determinant() < 0.0 {
+          Matrix3f::new(
+            u[0], u[1], -u[2],
+            u[3], u[4], -u[5],
+            u[6], u[7], -u[8],
           )
         } else {
-          (u, sigma)
+          u
         };
         assert!(u.determinant() >= 0.0);
 
         // Invert the related V^T and Sigma component
-        let (v_t, sigma) = if v_t.determinant() < 0.0 {
-          (
-            Matrix3f::new(
-              v_t[0], v_t[1], v_t[2],
-              v_t[3], v_t[4], v_t[5],
-              -v_t[6], -v_t[7], -v_t[8],
-            ),
-            Vector3f::new(sigma[0], sigma[1], -sigma[2]),
+        let v_t = if v_t.determinant() < 0.0 {
+          Matrix3f::new(
+            v_t[0], v_t[1], v_t[2],
+            v_t[3], v_t[4], v_t[5],
+            -v_t[6], -v_t[7], -v_t[8],
           )
         } else {
-          (v_t, sigma)
+          v_t
         };
         assert!(v_t.determinant() >= 0.0);
 
-        let f = u * Matrix3f::from_diagonal(&sigma) * v_t;
-        let r = u * v_t;
-        (f, r)
+        // Return U * V^T
+        u * v_t
       }
       _ => panic!("Cannot decompose svd"),
     }
@@ -623,11 +611,11 @@ impl World {
 
   /// Find $\bold{P} = \frac{\partial \Phi}{\partial \bold{F}}$
   fn fixed_corotated(deformation: Matrix3f, mu: f32, lambda: f32) -> Matrix3f {
-    let (f, r) = Self::polar_svd_r(deformation);
-    let j = f.determinant(); // J > 0
+    let r = Self::polar_svd_r(deformation);
+    let j = deformation.determinant(); // J > 0
     assert!(j >= 0.0);
-    let jf_t = Self::dj_df(f);
-    2.0 * mu * (f - r) + lambda * (j - 1.0) * jf_t
+    let jf_t = Self::dj_df(deformation);
+    2.0 * mu * (deformation - r) + lambda * (j - 1.0) * jf_t
   }
 
   /// 4.2. Apply elastic force onto each grid node.
@@ -637,8 +625,7 @@ impl World {
   /// # TODO: Make the constants per-particle
   fn apply_elastic_force(&mut self) {
     for par in &mut self.particles {
-      // let stress = Self::fixed_corotated(par.deformation, 3846.153846, 5769.230769);
-      let stress = Self::fixed_corotated(par.deformation, 10.0, 10.0);
+      let stress = Self::fixed_corotated(par.deformation, 3846.153846, 5769.230769);
       let vp0pft = par.volume * stress * par.deformation.transpose();
       for (node_index, _, grad_w) in self.grid.neighbor_weights(par.position) {
         let node = self.grid.get_node_mut(node_index);

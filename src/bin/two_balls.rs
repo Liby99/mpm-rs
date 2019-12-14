@@ -11,8 +11,8 @@ fn main() {
 
   // Build the boundaries and so on
   world.put_zero_boundary(0.03);
-  world.put_ball(Vector3f::new(0.45, 0.55, 0.45), 0.1, 10000, 1.0);
-  world.put_ball(Vector3f::new(0.50, 0.75, 0.50), 0.05, 1000, 1.0);
+  world.put_ball(Vector3f::new(0.45, 0.25, 0.45), 0.1, 10000, 1.0);
+  world.put_ball(Vector3f::new(0.50, 0.45, 0.50), 0.05, 1000, 1.0);
 
   // Then build the driver
   let mut driver = Driver::new(world, 0.001);
