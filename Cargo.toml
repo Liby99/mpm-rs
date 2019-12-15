@@ -11,3 +11,4 @@ specs = "0.15"
 nalgebra = "0.18"
 rand = "0.7.2"
 pbr = "1.0"
+msh_rs = { path = "lib/msh-rs" }
