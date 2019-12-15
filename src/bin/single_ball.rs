@@ -7,6 +7,8 @@ fn main() {
   let dt = 0.001;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
+  let mu = 3846.153846;
+  let lambda = 5769.230769;
   let boundary_thickness = 0.04;
 
   // Create output directory
@@ -18,9 +20,11 @@ fn main() {
   // Set parameters
   world.set_dt(dt);
   world.set_output_dir(outdir);
-  world.put_boundary(boundary_thickness);
+  world.set_mu(mu);
+  world.set_lambda(lambda);
 
   // Put the particles
+  world.put_boundary(boundary_thickness);
   world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, 10.0, 10000);
 
   // Generate progressbar and let it run

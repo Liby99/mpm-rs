@@ -70,6 +70,14 @@ impl<'a, 'b> World<'a, 'b> {
     self.world.fetch_mut::<OutputDirectory>().set(output_dir.to_string());
   }
 
+  pub fn set_mu(&mut self, mu: f32) {
+    self.world.fetch_mut::<Mu>().set(mu);
+  }
+
+  pub fn set_lambda(&mut self, lambda: f32) {
+    self.world.fetch_mut::<Lambda>().set(lambda);
+  }
+
   pub fn put_boundary(&mut self, thickness: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;
