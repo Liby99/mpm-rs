@@ -7,8 +7,8 @@ fn main() {
   let dt = 0.001;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
-  let mu = 3846.153846;
-  let lambda = 5769.230769;
+  let mu = 10000.0;
+  let lambda = 15000.0;
   let dump_skip = 3;
   let boundary_thickness = 0.04;
 
