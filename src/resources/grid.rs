@@ -10,7 +10,12 @@ pub enum Boundary {
   SetZero,
 
   /// Remove the velocity component along surface normal
-  Surface { normal: Vector3f }, // TODO: Friction
+  Sliding { normal: Vector3f },
+
+  /// Remove the velocity component along surface normal
+  /// and multiply the tangential velocity by the factor
+  /// Useful for simulating (non-real) friction
+  VelocityDiminish { normal: Vector3f, factor: f32 }
 }
 
 /// The Node of the Grid
@@ -73,8 +78,12 @@ impl Node {
       Boundary::SetZero => {
         self.velocity = Vector3f::zeros();
       }
-      Boundary::Surface { normal } => {
+      Boundary::Sliding { normal } => {
         self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
+      }
+      Boundary::VelocityDiminish { normal, factor } => {
+        self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
+        self.velocity *= factor;
       }
       _ => {}
     }

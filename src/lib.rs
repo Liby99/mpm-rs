@@ -105,23 +105,23 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_surface_boundary(&mut self, thickness: f32) {
+  pub fn put_sliding_boundary(&mut self, thickness: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;
     let num_nodes = (thickness / grid.h).ceil() as usize;
     for node_index in grid.indices() {
       let boundary = if node_index.x < num_nodes {
-        Boundary::Surface { normal: Vector3f::new(1.0, 0.0, 0.0) }
+        Boundary::Sliding { normal: Vector3f::new(1.0, 0.0, 0.0) }
       } else if node_index.x > dim.x - num_nodes {
-        Boundary::Surface { normal: Vector3f::new(-1.0, 0.0, 0.0) }
+        Boundary::Sliding { normal: Vector3f::new(-1.0, 0.0, 0.0) }
       } else if node_index.y < num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, 1.0, 0.0) }
+        Boundary::Sliding { normal: Vector3f::new(0.0, 1.0, 0.0) }
       } else if node_index.y > dim.y - num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, -1.0, 0.0) }
+        Boundary::Sliding { normal: Vector3f::new(0.0, -1.0, 0.0) }
       } else if node_index.z < num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, 1.0) }
+        Boundary::Sliding { normal: Vector3f::new(0.0, 0.0, 1.0) }
       } else if node_index.z > dim.z - num_nodes {
-        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, -1.0) }
+        Boundary::Sliding { normal: Vector3f::new(0.0, 0.0, -1.0) }
       } else {
         Boundary::None
       };
@@ -129,9 +129,42 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize) {
-    use specs::prelude::*;
+  pub fn put_vel_dim_boundary(&mut self, thickness: f32, factor: f32) {
+    let mut grid = self.world.fetch_mut::<Grid>();
+    let dim = grid.dim;
+    let num_nodes = (thickness / grid.h).ceil() as usize;
+    for node_index in grid.indices() {
+      let boundary = if node_index.x < num_nodes {
+        Boundary::VelocityDiminish { normal: Vector3f::new(1.0, 0.0, 0.0), factor }
+      } else if node_index.x > dim.x - num_nodes {
+        Boundary::VelocityDiminish { normal: Vector3f::new(-1.0, 0.0, 0.0), factor }
+      } else if node_index.y < num_nodes {
+        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, 1.0, 0.0), factor }
+      } else if node_index.y > dim.y - num_nodes {
+        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, -1.0, 0.0), factor }
+      } else if node_index.z < num_nodes {
+        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, 0.0, 1.0), factor }
+      } else if node_index.z > dim.z - num_nodes {
+        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, 0.0, -1.0), factor }
+      } else {
+        Boundary::None
+      };
+      grid.get_node_mut(node_index).boundary = boundary;
+    }
+  }
 
+  pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32) {
+    use specs::prelude::*;
+    self.world.create_entity()
+      .with(ParticlePosition(pos))
+      .with(ParticleVelocity(vel))
+      .with(ParticleMass(m))
+      .with(ParticleVolume(v))
+      .with(ParticleDeformation(Matrix3f::identity()))
+      .build();
+  }
+
+  pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize) {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
@@ -139,19 +172,12 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Then add n particles
     for _ in 0..n {
-      self.world.create_entity()
-        .with(ParticlePosition(random_point_in_sphere(center, radius)))
-        .with(ParticleVelocity(vel))
-        .with(ParticleMass(ind_mass))
-        .with(ParticleVolume(ind_volume))
-        .with(ParticleDeformation(Matrix3f::identity()))
-        .build();
+      let pos = random_point_in_sphere(center, radius);
+      self.put_particle(pos, vel, ind_mass, ind_volume);
     }
   }
 
   pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, vel: Vector3f, mass: f32, n: usize) {
-    use specs::prelude::*;
-
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;
@@ -160,13 +186,8 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Then add n particles
     for _ in 0..n {
-      self.world.create_entity()
-        .with(ParticlePosition(random_point_in_cube(min, max)))
-        .with(ParticleVelocity(vel))
-        .with(ParticleMass(ind_mass))
-        .with(ParticleVolume(ind_volume))
-        .with(ParticleDeformation(Matrix3f::identity()))
-        .build();
+      let pos = random_point_in_cube(min, max);
+      self.put_particle(pos, vel, ind_mass, ind_volume);
     }
   }
 }
