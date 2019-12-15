@@ -44,13 +44,17 @@ impl ElementType {
 
 #[derive(Debug)]
 pub struct Msh {
-  nodes: Vec<Node>,
-  elements: Vec<Element>,
+  pub nodes: Vec<Node>,
+  pub elements: Vec<Element>,
 }
 
 pub fn check(buf: &Vec<u8>, id: &mut usize, val: u8) -> Result<(), Error> {
-  *id += 1;
-  if buf[*id] == val { Ok(()) } else { Err(Error::BadValue(*id)) }
+  if buf[*id] == val {
+    *id += 1;
+    Ok(())
+  } else {
+    Err(Error::BadValue(*id))
+  }
 }
 
 pub fn check_array(buf: &Vec<u8>, start: &mut usize, val: &Vec<u8>) -> Result<(), Error> {
@@ -79,7 +83,7 @@ pub fn load_u32(buf: &Vec<u8>, start: &mut usize) -> Result<u32, Error> {
   let b1 = buf[*start] as u32;
   let b2 = buf[*start + 1] as u32;
   let b3 = buf[*start + 2] as u32;
-  let b4 = buf[*start + 4] as u32;
+  let b4 = buf[*start + 3] as u32;
   let n = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
   *start += 4;
   Ok(n)
@@ -108,7 +112,7 @@ pub fn load_node(buf: &Vec<u8>, start: &mut usize) -> Result<Node, Error> {
   Ok(Node { x, y, z })
 }
 
-pub fn load(filename: String) -> Result<Msh, Error> {
+pub fn load(filename: &str) -> Result<Msh, Error> {
 
   // Open file
   let mut file = File::open(filename).map_err(|_| Error::CannotReadFile)?;
@@ -140,7 +144,8 @@ pub fn load(filename: String) -> Result<Msh, Error> {
 
   // Parse binary one
   let binary_one = load_u32(&buffer, &mut i)?;
-  assert_eq!(binary_one, 1u32);
+  println!("Binary one: {}", binary_one);
+  assert_eq!(binary_one, 1u32, "Binary one should be equal to 1");
 
   // Parse header ending
   check_str(&buffer, &mut i, "$EndMeshFormat\n")?;

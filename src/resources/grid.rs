@@ -287,9 +287,12 @@ impl Grid {
   /// Iterate the neighbors. Will get `node_index`, `weight` and `weight_gradient`.
   /// for each neighbor node.
   ///
-  /// ## Example usage
+  /// ## Example
   ///
   /// ``` rust
+  /// # use mpm_rs::*;
+  /// # let pos = Vector3f::new(0.5, 0.5, 0.5);
+  /// # let grid = Grid::new(Vector3u::new(50, 50, 50), 0.02);
   /// for (node_index, weight, weight_gradient) in grid.neighbor_weights(pos) {
   ///   let node = grid.get_node(node_index);
   ///   // Do things with the node...
@@ -319,9 +322,11 @@ impl Grid {
 
   /// Iterate indices of the grid
   ///
-  /// ## Example usage
+  /// ## Example
   ///
   /// ``` rust
+  /// # use mpm_rs::*;
+  /// # let grid = Grid::new(Vector3u::new(50, 50, 50), 0.02);
   /// for node_index in grid.indices() {
   ///   let node = grid.get_node(node_index);
   ///   // Do things with the node...

@@ -9,9 +9,9 @@ pub mod resources;
 pub mod systems;
 
 pub use utils::*;
-use components::*;
-use resources::*;
-use systems::*;
+pub use components::*;
+pub use resources::*;
+pub use systems::*;
 
 pub struct World<'a, 'b> {
   dispatcher: specs::Dispatcher<'a, 'b>,
