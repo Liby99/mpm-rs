@@ -10,8 +10,8 @@ fn main() {
   let bunny_file = "res/bunny.msh";
   let outdir = "result/bunny_out";
   let cycles = 3000;
-  let dump_skip = 10;
-  let dt = 0.001;
+  let dump_skip = 20;
+  let dt = 0.0005;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
   let youngs_modulus = 150000.0;
