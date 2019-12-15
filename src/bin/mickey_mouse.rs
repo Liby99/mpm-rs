@@ -7,10 +7,15 @@ fn main() {
   let dt = 0.001;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
-  let mu = 10000.0;
-  let lambda = 15000.0;
+  let youngs_modulus = 140000.0;
+  let nu = 0.2;
+  let mu = youngs_modulus / (2.0 * (1.0 + nu));
+  let lambda = youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
   let dump_skip = 3;
   let boundary_thickness = 0.04;
+
+  // Log the parameters
+  println!("Mu: {}, Lambda: {}", mu, lambda);
 
   // Create output directory
   std::fs::create_dir_all(outdir).unwrap();

@@ -105,6 +105,30 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  pub fn put_surface_boundary(&mut self, thickness: f32) {
+    let mut grid = self.world.fetch_mut::<Grid>();
+    let dim = grid.dim;
+    let num_nodes = (thickness / grid.h).ceil() as usize;
+    for node_index in grid.indices() {
+      let boundary = if node_index.x < num_nodes {
+        Boundary::Surface { normal: Vector3f::new(1.0, 0.0, 0.0) }
+      } else if node_index.x > dim.x - num_nodes {
+        Boundary::Surface { normal: Vector3f::new(-1.0, 0.0, 0.0) }
+      } else if node_index.y < num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, 1.0, 0.0) }
+      } else if node_index.y > dim.y - num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, -1.0, 0.0) }
+      } else if node_index.z < num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, 1.0) }
+      } else if node_index.z > dim.z - num_nodes {
+        Boundary::Surface { normal: Vector3f::new(0.0, 0.0, -1.0) }
+      } else {
+        Boundary::None
+      };
+      grid.get_node_mut(node_index).boundary = boundary;
+    }
+  }
+
   pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize) {
     use specs::prelude::*;
 

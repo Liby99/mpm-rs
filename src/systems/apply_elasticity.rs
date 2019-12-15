@@ -4,41 +4,13 @@ use crate::utils::*;
 use crate::resources::*;
 use crate::components::*;
 
-pub struct ApplyElasticitySystem;
-
-impl<'a> System<'a> for ApplyElasticitySystem {
-  type SystemData = (
-    Read<'a, Mu>,
-    Read<'a, Lambda>,
-    Write<'a, Grid>,
-    ReadStorage<'a, ParticlePosition>,
-    ReadStorage<'a, ParticleVolume>,
-    ReadStorage<'a, ParticleDeformation>,
-  );
-
-  fn run(&mut self, (mu, lambda, mut grid, positions, volumes, deformations): Self::SystemData) {
-    for (position, volume, deformation) in (&positions, &volumes, &deformations).join() {
-      let stress = fixed_corotated(deformation.get(), mu.get(), lambda.get());
-      let vp0pft = volume.get() * stress * deformation.get().transpose();
-      for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
-        let node = grid.get_node_mut(node_index);
-        node.force -= vp0pft * grad_w;
-      }
-    }
-  }
-}
-
 /// Compute the derivative of Jacobian with respect to the matrix.
-///
-/// F = [ a b c 1 0 0
-///       d e f 0 1 0
-///       g h i 0 0 1]
 ///
 /// $$\frac{d J}{d F}$$
 ///
-/// F = [ a b c
-///       d e f
-///       g h i ]
+/// F = [ a b c ]
+///     [ d e f ]
+///     [ g h i ]
 ///
 /// J = det(F) = aei + bfg + cdh - ceg - bdi - fha
 ///
@@ -64,19 +36,11 @@ impl<'a> System<'a> for ApplyElasticitySystem {
 ///
 /// Hence $JF^{-T} = dJ/dF$
 fn dj_df(m: Matrix3f) -> Matrix3f {
-  let (a, b, c,
-       d, e, f,
-       g, h, i) = (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+  let (a, b, c, d, e, f, g, h, i) = (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
   Matrix3f::new(
-    e * i - f * h,
-    f * g - d * i,
-    d * h - e * g,
-    c * h - b * i,
-    a * i - c * g,
-    b * g - a * h,
-    b * f - c * e,
-    c * d - a * f,
-    a * e - b * d,
+    e * i - f * h, f * g - d * i, d * h - e * g,
+    c * h - b * i, a * i - c * g, b * g - a * h,
+    b * f - c * e, c * d - a * f, a * e - b * d,
   )
 }
 
@@ -125,4 +89,28 @@ fn fixed_corotated(deformation: Matrix3f, mu: f32, lambda: f32) -> Matrix3f {
   assert!(j >= 0.0);
   let jf_t = dj_df(deformation);
   2.0 * mu * (deformation - r) + lambda * (j - 1.0) * jf_t
+}
+
+pub struct ApplyElasticitySystem;
+
+impl<'a> System<'a> for ApplyElasticitySystem {
+  type SystemData = (
+    Read<'a, Mu>,
+    Read<'a, Lambda>,
+    Write<'a, Grid>,
+    ReadStorage<'a, ParticlePosition>,
+    ReadStorage<'a, ParticleVolume>,
+    ReadStorage<'a, ParticleDeformation>,
+  );
+
+  fn run(&mut self, (mu, lambda, mut grid, positions, volumes, deformations): Self::SystemData) {
+    for (position, volume, deformation) in (&positions, &volumes, &deformations).join() {
+      let stress = fixed_corotated(deformation.get(), mu.get(), lambda.get());
+      let vp0pft = volume.get() * stress * deformation.get().transpose();
+      for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
+        let node = grid.get_node_mut(node_index);
+        node.force -= vp0pft * grad_w;
+      }
+    }
+  }
 }
