@@ -27,8 +27,8 @@ fn main() {
 
   // Put the particles
   world.put_boundary(boundary_thickness);
-  world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, 10.0, 10000);
-  world.put_ball(Vector3f::new(0.54, 0.6, 0.54), 0.05, 1.25, 1250);
+  world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, Vector3f::zeros(), 10.0, 10000);
+  world.put_ball(Vector3f::new(0.54, 0.6, 0.54), 0.05, Vector3f::zeros(), 1.25, 1250);
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

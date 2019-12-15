@@ -105,7 +105,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_ball(&mut self, center: Vector3f, radius: f32, mass: f32, n: usize) {
+  pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize) {
     use specs::prelude::*;
 
     // Calculate individual mass and volume
@@ -116,8 +116,29 @@ impl<'a, 'b> World<'a, 'b> {
     // Then add n particles
     for _ in 0..n {
       self.world.create_entity()
-        .with(ParticlePosition(sample_point_in_sphere(center, radius)))
-        .with(ParticleVelocity(Vector3f::zeros()))
+        .with(ParticlePosition(random_point_in_sphere(center, radius)))
+        .with(ParticleVelocity(vel))
+        .with(ParticleMass(ind_mass))
+        .with(ParticleVolume(ind_volume))
+        .with(ParticleDeformation(Matrix3f::identity()))
+        .build();
+    }
+  }
+
+  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, vel: Vector3f, mass: f32, n: usize) {
+    use specs::prelude::*;
+
+    // Calculate individual mass and volume
+    let diff = max - min;
+    let total_volume = diff.x * diff.y * diff.z;
+    let ind_mass = mass / (n as f32);
+    let ind_volume = total_volume / (n as f32);
+
+    // Then add n particles
+    for _ in 0..n {
+      self.world.create_entity()
+        .with(ParticlePosition(random_point_in_cube(min, max)))
+        .with(ParticleVelocity(vel))
         .with(ParticleMass(ind_mass))
         .with(ParticleVolume(ind_volume))
         .with(ParticleDeformation(Matrix3f::identity()))

@@ -2,7 +2,7 @@ use pbr::ProgressBar;
 use mpm_rs::*;
 
 fn main() {
-  let outdir = "result/single_ball_out";
+  let outdir = "result/single_cube_out";
   let cycles = 1500;
   let dt = 0.001;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
@@ -27,7 +27,13 @@ fn main() {
 
   // Put the particles
   world.put_boundary(boundary_thickness);
-  world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, Vector3f::zeros(), 10.0, 10000);
+  world.put_cube(
+    Vector3f::new(0.4, 0.4, 0.4),
+    Vector3f::new(0.6, 0.6, 0.6),
+    Vector3f::zeros(),
+    10.0,
+    10000
+  );
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

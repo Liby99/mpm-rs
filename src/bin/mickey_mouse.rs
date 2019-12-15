@@ -2,13 +2,13 @@ use pbr::ProgressBar;
 use mpm_rs::*;
 
 fn main() {
-  let outdir = "result/single_ball_out";
+  let outdir = "result/mickey_mouse_out";
   let cycles = 1500;
   let dt = 0.001;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
-  let mu = 3846.153846;
-  let lambda = 5769.230769;
+  let mu = 10000.0;
+  let lambda = 15000.0;
   let dump_skip = 3;
   let boundary_thickness = 0.04;
 
@@ -28,6 +28,8 @@ fn main() {
   // Put the particles
   world.put_boundary(boundary_thickness);
   world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, Vector3f::zeros(), 10.0, 10000);
+  world.put_ball(Vector3f::new(0.58, 0.6, 0.58), 0.05, Vector3f::zeros(), 1.25, 1250);
+  world.put_ball(Vector3f::new(0.42, 0.6, 0.42), 0.05, Vector3f::zeros(), 1.25, 1250);
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);
