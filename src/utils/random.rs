@@ -21,3 +21,14 @@ pub fn random_point_in_cube(min: Vector3f, max: Vector3f) -> Vector3f {
   let z = rng.gen_range(min.z, max.z);
   return Vector3f::new(x, y, z);
 }
+
+pub fn random_point_in_tetra(p1: Vector3f, p2: Vector3f, p3: Vector3f, p4: Vector3f) -> Vector3f {
+  let mut rng = rand::thread_rng();
+  let x = rng.gen_range(0.0, 1.0);
+  let y = rng.gen_range(0.0, 1.0);
+  let z = rng.gen_range(0.0, 1.0);
+  let a = p2 - p1;
+  let b = p3 - p1;
+  let c = p4 - p1;
+  p1 + (a * x) + (b * y) + (c * z)
+}

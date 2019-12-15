@@ -17,8 +17,11 @@ pub struct Node {
 }
 
 #[derive(Debug)]
-pub enum Element {
-  Tetrahedron { i1: u32, i2: u32, i3: u32, i4: u32 }
+pub struct Tetrahedron {
+  pub i1: usize,
+  pub i2: usize,
+  pub i3: usize,
+  pub i4: usize,
 }
 
 #[derive(Debug)]
@@ -42,13 +45,7 @@ impl ElementType {
   }
 }
 
-#[derive(Debug)]
-pub struct Msh {
-  pub nodes: Vec<Node>,
-  pub elements: Vec<Element>,
-}
-
-pub fn check(buf: &Vec<u8>, id: &mut usize, val: u8) -> Result<(), Error> {
+fn check(buf: &Vec<u8>, id: &mut usize, val: u8) -> Result<(), Error> {
   if buf[*id] == val {
     *id += 1;
     Ok(())
@@ -57,18 +54,18 @@ pub fn check(buf: &Vec<u8>, id: &mut usize, val: u8) -> Result<(), Error> {
   }
 }
 
-pub fn check_array(buf: &Vec<u8>, start: &mut usize, val: &Vec<u8>) -> Result<(), Error> {
+fn check_array(buf: &Vec<u8>, start: &mut usize, val: &Vec<u8>) -> Result<(), Error> {
   for v in val {
     check(buf, start, *v)?;
   }
   Ok(())
 }
 
-pub fn check_str(buf: &Vec<u8>, start: &mut usize, s: &str) -> Result<(), Error> {
+fn check_str(buf: &Vec<u8>, start: &mut usize, s: &str) -> Result<(), Error> {
   check_array(buf, start, &Vec::from(s.as_bytes()))
 }
 
-pub fn load_ascii_u32(buf: &Vec<u8>, i: &mut usize, end: u8) -> Result<u32, Error> {
+fn load_ascii_u32(buf: &Vec<u8>, i: &mut usize, end: u8) -> Result<u32, Error> {
   let mut char_vec = Vec::new();
   while buf[*i] != end {
     char_vec.push(buf[*i]);
@@ -79,7 +76,7 @@ pub fn load_ascii_u32(buf: &Vec<u8>, i: &mut usize, end: u8) -> Result<u32, Erro
   num_str.parse::<u32>().map_err(|_| Error::BadInteger(*i))
 }
 
-pub fn load_u32(buf: &Vec<u8>, start: &mut usize) -> Result<u32, Error> {
+fn load_u32(buf: &Vec<u8>, start: &mut usize) -> Result<u32, Error> {
   let b1 = buf[*start] as u32;
   let b2 = buf[*start + 1] as u32;
   let b3 = buf[*start + 2] as u32;
@@ -89,7 +86,7 @@ pub fn load_u32(buf: &Vec<u8>, start: &mut usize) -> Result<u32, Error> {
   Ok(n)
 }
 
-pub fn load_f64(buf: &Vec<u8>, start: &mut usize) -> Result<f64, Error> {
+fn load_f64(buf: &Vec<u8>, start: &mut usize) -> Result<f64, Error> {
   let b1 = buf[*start] as u64;
   let b2 = buf[*start + 1] as u64;
   let b3 = buf[*start + 2] as u64;
@@ -104,7 +101,7 @@ pub fn load_f64(buf: &Vec<u8>, start: &mut usize) -> Result<f64, Error> {
   Ok(f)
 }
 
-pub fn load_node(buf: &Vec<u8>, start: &mut usize) -> Result<Node, Error> {
+fn load_node(buf: &Vec<u8>, start: &mut usize) -> Result<Node, Error> {
   let _ = load_u32(&buf, start)?; // Ignore index
   let x = load_f64(&buf, start)?;
   let y = load_f64(&buf, start)?;
@@ -112,101 +109,108 @@ pub fn load_node(buf: &Vec<u8>, start: &mut usize) -> Result<Node, Error> {
   Ok(Node { x, y, z })
 }
 
-pub fn load(filename: &str) -> Result<Msh, Error> {
+#[derive(Debug)]
+pub struct TetMesh {
+  pub nodes: Vec<Node>,
+  pub tetras: Vec<Tetrahedron>,
+}
 
-  // Open file
-  let mut file = File::open(filename).map_err(|_| Error::CannotReadFile)?;
+impl TetMesh {
+  pub fn load(filename: &str) -> Result<Self, Error> {
+    // Open file
+    let mut file = File::open(filename).map_err(|_| Error::CannotReadFile)?;
 
-  // Create buffer and read to buffer
-  let mut buffer = Vec::new();
-  file.read_to_end(&mut buffer).map_err(|_| Error::CannotReadFile)?;
+    // Create buffer and read to buffer
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).map_err(|_| Error::CannotReadFile)?;
 
-  let mut i = 0;
+    let mut i = 0;
 
-  // Check the header
-  check_str(&buffer, &mut i, "$MeshFormat\n")?;
+    // Check the header
+    check_str(&buffer, &mut i, "$MeshFormat\n")?;
 
-  // Parse version number
-  let mut version_number = Vec::new();
-  while buffer[i] != 0x20 {
-    version_number.push(buffer[i]);
-    i += 1;
-  }
-  check(&buffer, &mut i, 0x20)?; // space after version number
+    // Parse version number
+    let mut version_number = Vec::new();
+    while buffer[i] != 0x20 {
+      version_number.push(buffer[i]);
+      i += 1;
+    }
+    check(&buffer, &mut i, 0x20)?; // space after version number
 
-  // Parse file type
-  check(&buffer, &mut i, 0x31)?; // file type should be '1'
-  check(&buffer, &mut i, 0x20)?; // space after file type
+    // Parse file type
+    check(&buffer, &mut i, 0x31)?; // file type should be '1'
+    check(&buffer, &mut i, 0x20)?; // space after file type
 
-  // Parse data size
-  check(&buffer, &mut i, 0x38)?; // data size should be '8'
-  check(&buffer, &mut i, 0x0A)?; // '\n' after data size
+    // Parse data size
+    check(&buffer, &mut i, 0x38)?; // data size should be '8'
+    check(&buffer, &mut i, 0x0A)?; // '\n' after data size
 
-  // Parse binary one
-  let binary_one = load_u32(&buffer, &mut i)?;
-  println!("Binary one: {}", binary_one);
-  assert_eq!(binary_one, 1u32, "Binary one should be equal to 1");
+    // Parse binary one
+    let binary_one = load_u32(&buffer, &mut i)?;
+    println!("Binary one: {}", binary_one);
+    assert_eq!(binary_one, 1u32, "Binary one should be equal to 1");
 
-  // Parse header ending
-  check_str(&buffer, &mut i, "$EndMeshFormat\n")?;
+    // Parse header ending
+    check_str(&buffer, &mut i, "$EndMeshFormat\n")?;
 
-  // Parse start nodes
-  check_str(&buffer, &mut i, "$Nodes\n")?;
+    // Parse start nodes
+    check_str(&buffer, &mut i, "$Nodes\n")?;
 
-  // Parse num nodes
-  let num_nodes = load_ascii_u32(&buffer, &mut i, 0x0A)?; // End with '\n'
+    // Parse num nodes
+    let num_nodes = load_ascii_u32(&buffer, &mut i, 0x0A)?; // End with '\n'
 
-  // Parse nodes
-  let mut nodes = Vec::new();
-  for _ in 0..num_nodes {
-    let node = load_node(&buffer, &mut i)?;
-    nodes.push(node);
-  }
-
-  // Parse end nodes
-  check_str(&buffer, &mut i, "$EndNodes\n")?;
-
-  // Parse start elements
-  check_str(&buffer, &mut i, "$Elements\n")?;
-
-  // Parse num elements
-  let num_elements = load_ascii_u32(&buffer, &mut i, 0x0A)?; // End with '\n'
-
-  // Parse elements
-  let mut elem_read = 0;
-  let mut elements = Vec::new();
-  while elem_read < num_elements {
-
-    // Element header
-    let elem_type = ElementType::from_u32(load_u32(&buffer, &mut i)?)?;
-    let num_elems = load_u32(&buffer, &mut i)?;
-    let num_tags = load_u32(&buffer, &mut i)?;
-
-    // Get nodes per element
-    let nodes_per_element = elem_type.num_nodes_per_element()?;
-    assert_eq!(nodes_per_element, 4);
-
-    // Go through the current elements
-    for _ in 0..num_elems {
-      let _ = load_u32(&buffer, &mut i)?; // Ignore element index
-
-      // Don't care tags
-      for _ in 0..num_tags {
-        let _ = load_u32(&buffer, &mut i)?;
-      }
-
-      // Element values
-      let i1 = load_u32(&buffer, &mut i)? - 1;
-      let i2 = load_u32(&buffer, &mut i)? - 1;
-      let i3 = load_u32(&buffer, &mut i)? - 1;
-      let i4 = load_u32(&buffer, &mut i)? - 1;
-      let element = Element::Tetrahedron { i1, i2, i3, i4 };
-      elements.push(element);
+    // Parse nodes
+    let mut nodes = Vec::new();
+    for _ in 0..num_nodes {
+      let node = load_node(&buffer, &mut i)?;
+      nodes.push(node);
     }
 
-    // Increment the elem_read
-    elem_read += num_elems;
-  }
+    // Parse end nodes
+    check_str(&buffer, &mut i, "$EndNodes\n")?;
 
-  Ok(Msh { nodes, elements })
+    // Parse start elements
+    check_str(&buffer, &mut i, "$Elements\n")?;
+
+    // Parse num elements
+    let num_elements = load_ascii_u32(&buffer, &mut i, 0x0A)?; // End with '\n'
+
+    // Parse elements
+    let mut elem_read = 0;
+    let mut tetras = Vec::new();
+    while elem_read < num_elements {
+
+      // Element header
+      let elem_type = ElementType::from_u32(load_u32(&buffer, &mut i)?)?;
+      let num_elems = load_u32(&buffer, &mut i)?;
+      let num_tags = load_u32(&buffer, &mut i)?;
+
+      // Get nodes per element
+      let nodes_per_element = elem_type.num_nodes_per_element()?;
+      assert_eq!(nodes_per_element, 4);
+
+      // Go through the current elements
+      for _ in 0..num_elems {
+        let _ = load_u32(&buffer, &mut i)?; // Ignore element index
+
+        // Don't care tags
+        for _ in 0..num_tags {
+          let _ = load_u32(&buffer, &mut i)?;
+        }
+
+        // Element values
+        let i1 = (load_u32(&buffer, &mut i)? - 1) as usize;
+        let i2 = (load_u32(&buffer, &mut i)? - 1) as usize;
+        let i3 = (load_u32(&buffer, &mut i)? - 1) as usize;
+        let i4 = (load_u32(&buffer, &mut i)? - 1) as usize;
+        let tetra = Tetrahedron { i1, i2, i3, i4 };
+        tetras.push(tetra);
+      }
+
+      // Increment the elem_read
+      elem_read += num_elems;
+    }
+
+    Ok(Self { nodes, tetras })
+  }
 }
