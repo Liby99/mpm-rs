@@ -4,9 +4,9 @@ use crate::utils::*;
 use crate::resources::*;
 use crate::components::*;
 
-pub struct ApplyElasticForceSystem;
+pub struct ApplyElasticitySystem;
 
-impl<'a> System<'a> for ApplyElasticForceSystem {
+impl<'a> System<'a> for ApplyElasticitySystem {
   type SystemData = (
     Write<'a, Grid>,
     ReadStorage<'a, ParticlePosition>,
