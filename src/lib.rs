@@ -44,8 +44,7 @@ impl<'a, 'b> World<'a, 'b> {
     builder.add(GridSetBoundarySystem, "grid_set_boundary", &["grid_f2v"]);
     builder.add(EvolveDeformationSystem, "evolve_deformation", &["grid_set_boundary"]);
     builder.add(G2PSystem, "g2p", &["grid_set_boundary"]);
-    builder.add_barrier();
-    builder.add_thread_local(DumpSystem);
+    builder.add_thread_local(DumpSystem::default());
 
     // Build the world
     let mut dispatcher = builder.build();
@@ -68,6 +67,10 @@ impl<'a, 'b> World<'a, 'b> {
 
   pub fn set_output_dir(&mut self, output_dir: &str) {
     self.world.fetch_mut::<OutputDirectory>().set(output_dir.to_string());
+  }
+
+  pub fn set_dump_skip(&mut self, dump_skip: usize) {
+    self.world.fetch_mut::<DumpSkip>().set(dump_skip);
   }
 
   pub fn set_mu(&mut self, mu: f32) {
