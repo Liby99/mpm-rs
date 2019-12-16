@@ -31,6 +31,7 @@ pub struct Node {
   pub mass: f32,
 
   /// The lagrangian velocity at the node
+  pub velocity_temp: Vector3f,
   pub velocity: Vector3f,
 
   /// The momentum at the node
@@ -49,6 +50,7 @@ impl Node {
   pub fn new() -> Self {
     Self {
       mass: 0.0,
+      velocity_temp: Vector3f::zeros(),
       velocity: Vector3f::zeros(),
       momentum: Vector3f::zeros(),
       force: Vector3f::zeros(),
@@ -61,6 +63,7 @@ impl Node {
   /// Should set everything but `index` and `boundary` to `0`
   pub fn clean(&mut self) {
     self.mass = 0.0;
+    self.velocity_temp = Vector3f::zeros();
     self.velocity = Vector3f::zeros();
     self.momentum = Vector3f::zeros();
     self.force = Vector3f::zeros();

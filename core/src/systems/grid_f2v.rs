@@ -11,7 +11,7 @@ impl<'a> System<'a> for GridF2VSystem {
   fn run(&mut self, (dt, mut grid): Self::SystemData) {
     grid.nodes.par_iter_mut().for_each(|node| {
       if node.mass != 0.0 {
-        node.velocity += node.force / node.mass * dt.get();
+        node.velocity = node.velocity_temp + node.force / node.mass * dt.get();
       }
     })
   }

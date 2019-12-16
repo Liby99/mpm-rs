@@ -13,9 +13,9 @@ impl<'a> System<'a> for GridM2VSystem {
   fn run(&mut self, mut grid: Self::SystemData) {
     grid.nodes.par_iter_mut().for_each(|node| {
       if node.mass == 0.0 {
-        node.velocity = Vector3f::zeros();
+        node.velocity_temp = Vector3f::zeros();
       } else {
-        node.velocity = node.momentum / node.mass;
+        node.velocity_temp = node.momentum / node.mass;
       }
     })
   }
