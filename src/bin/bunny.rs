@@ -1,3 +1,4 @@
+use std::time::SystemTime;
 use pbr::ProgressBar;
 use mpm_rs::{World, Vector3f, random_point_in_tetra};
 use msh_rs::{TetMesh, Node};
@@ -7,6 +8,9 @@ fn node_to_vec(node: &Node) -> Vector3f {
 }
 
 fn main() {
+  let start = SystemTime::now();
+
+  // Parameters
   let bunny_file = "res/bunny.msh";
   let outdir = "result/bunny_out";
   let cycles = 5000;
@@ -14,31 +18,28 @@ fn main() {
   let dt = 0.0005;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
-  let youngs_modulus = 130000.0;
+  let youngs_modulus = 200000.0;
   let nu = 0.3;
   let mu = youngs_modulus / (2.0 * (1.0 + nu));
   let lambda = youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
   let boundary_thickness = 0.04;
   let boundary_velocity_diminishing = 0.95;
   let density = 2500.0;
-  let particle_mass = 0.01;
+  let particle_mass = 0.001;
   let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
   let bunny_scale = 3.5;
   let bunny_offset = Vector3f::new(0.5, 0.3, 0.5);
   let ball_1_position = Vector3f::new(0.2, 0.4, 0.8);
-  let ball_2_position = Vector3f::new(0.8, 0.7, 0.5);
-  let ball_3_position = Vector3f::new(0.4, 0.2, 0.6);
+  let ball_2_position = Vector3f::new(0.8, 0.8, 0.5);
+  let ball_3_position = Vector3f::new(0.4, 0.6, 0.6);
+  let ball_1_velocity = Vector3f::new(1.5, 3.0, -2.0);
+  let ball_2_velocity = Vector3f::new(8.0, -5.0, 1.0);
+  let ball_3_velocity = Vector3f::new(-10.0, 6.0, 0.5);
   let ball_radius : f32 = 0.1;
   let ball_volume = ball_radius.powi(3) * std::f32::consts::PI;
   let ball_mass = density * ball_volume;
   let ball_num_particles = (ball_mass / particle_mass) as usize;
-  let ball_1_velocity = Vector3f::new(1.5, 3.0, -2.0);
-  let ball_2_velocity = Vector3f::new(10.0, -5.0, 1.0);
-  let ball_3_velocity = Vector3f::new(-5.0, 6.0, 0.5);
-  let output_random_portion = 1.0;
-
-  // Log the parameters
-  println!("Mu: {}, Lambda: {}", mu, lambda);
+  let output_random_portion = 0.1;
 
   // Create output directory
   std::fs::create_dir_all(outdir).unwrap();
@@ -84,11 +85,18 @@ fn main() {
   // Make the world only show a portion
   world.only_show_random_portion(output_random_portion);
 
+  // Log the parameters
+  println!("Mu: {}, Lambda: {}, #Particles: {}", mu, lambda, "Not Implemented");
+
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);
   for _ in 0..cycles {
     pb.inc();
     world.step();
   }
-  pb.finish_print("Finished");
+
+  // Print finish
+  let secs_elapsed = start.elapsed().unwrap().as_secs();
+  let finish = format!("Finished {} cycles in {} secs", cycles, secs_elapsed);
+  pb.finish_print(finish.as_str());
 }
