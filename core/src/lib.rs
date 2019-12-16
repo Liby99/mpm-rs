@@ -90,6 +90,16 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  pub fn num_particles(&self) -> usize {
+    use specs::prelude::*;
+    let poses : ReadStorage<ParticlePosition> = self.world.system_data();
+    let mut num = 0;
+    for _ in (&poses).join() {
+      num += 1;
+    }
+    num
+  }
+
   pub fn put_boundary(&mut self, thickness: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;

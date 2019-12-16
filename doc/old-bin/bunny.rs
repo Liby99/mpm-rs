@@ -17,13 +17,21 @@ fn main() {
   let dump_skip = 20;
   let dt = 0.0005;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
+<<<<<<< HEAD:doc/old-bin/bunny.rs
   let grid_h = 0.02;
   let youngs_modulus = 200000.0;
   let nu = 0.3;
+=======
+  let grid_h = 0.01;
+  let youngs_modulus = 150000.0;
+  let nu = 0.2;
+  let mu = youngs_modulus / (2.0 * (1.0 + nu));
+  let lambda = youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
+>>>>>>> Refined bunny:src/bin/bunny.rs
   let boundary_thickness = 0.04;
   let boundary_velocity_diminishing = 0.95;
   let density = 2500.0;
-  let particle_mass = 0.001;
+  let particle_mass = 0.0001;
   let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
   let bunny_scale = 3.5;
   let bunny_offset = Vector3f::new(0.5, 0.3, 0.5);
