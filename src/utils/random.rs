@@ -1,6 +1,11 @@
 use rand::Rng;
 use super::*;
 
+pub fn random() -> f32 {
+  let mut rng = rand::thread_rng();
+  rng.gen_range(0.0, 1.0)
+}
+
 pub fn random_point_in_sphere(center: Vector3f, radius: f32) -> Vector3f {
   let mut rng = rand::thread_rng();
   loop {

@@ -9,7 +9,7 @@ fn node_to_vec(node: &Node) -> Vector3f {
 fn main() {
   let bunny_file = "res/bunny.msh";
   let outdir = "result/bunny_out";
-  let cycles = 3000;
+  let cycles = 5000;
   let dump_skip = 20;
   let dt = 0.0005;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
@@ -25,6 +25,7 @@ fn main() {
   let initial_velocity = Vector3f::new(-3.0, 1.0, -8.0);
   let scale = 3.0;
   let offset = Vector3f::new(0.5, 0.3, 0.5);
+  let random_portion = 0.25;
 
   // Log the parameters
   println!("Mu: {}, Lambda: {}", mu, lambda);
@@ -41,6 +42,7 @@ fn main() {
   world.set_dump_skip(dump_skip);
   world.set_mu(mu);
   world.set_lambda(lambda);
+  world.only_show_random_portion(random_portion);
 
   // Put the boundary
   world.put_vel_dim_boundary(boundary_thickness, boundary_velocity_diminishing);

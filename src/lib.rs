@@ -81,6 +81,26 @@ impl<'a, 'b> World<'a, 'b> {
     self.world.fetch_mut::<Lambda>().set(lambda);
   }
 
+  pub fn only_show_random_portion(&mut self, percentage: f32) {
+    use specs::prelude::*;
+    let (
+      entities,
+      poses,
+      mut hiddens
+    ): (
+      Entities,
+      ReadStorage<ParticlePosition>,
+      WriteStorage<Hidden>
+    ) = self.world.system_data();
+    for (entity, _) in (&entities, &poses).join() {
+      if random() < percentage {
+        hiddens.remove(entity);
+      } else {
+        hiddens.insert(entity, Hidden).unwrap();
+      }
+    }
+  }
+
   pub fn put_boundary(&mut self, thickness: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;

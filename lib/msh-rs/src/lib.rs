@@ -147,7 +147,6 @@ impl TetMesh {
 
     // Parse binary one
     let binary_one = load_u32(&buffer, &mut i)?;
-    println!("Binary one: {}", binary_one);
     assert_eq!(binary_one, 1u32, "Binary one should be equal to 1");
 
     // Parse header ending

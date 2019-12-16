@@ -21,15 +21,16 @@ impl<'a> System<'a> for DumpSystem {
     Read<'a, StepCount>,
     Read<'a, DumpSkip>,
     ReadStorage<'a, ParticlePosition>,
+    ReadStorage<'a, Hidden>,
   );
 
-  fn run(&mut self, (out_dir, step_count, dump_skip, positions): Self::SystemData) {
+  fn run(&mut self, (out_dir, step_count, dump_skip, positions, hiddens): Self::SystemData) {
     if dump_skip.need_dump(step_count.get()) {
       self.dump_count += 1;
       let filename = format!("{}/{}.poly", out_dir.get(), self.dump_count);
       let mut file = File::create(filename).unwrap();
       file.write(b"POINTS\n").unwrap();
-      for (i, pos) in (&positions).join().enumerate() {
+      for (i, (pos, _)) in (&positions, !&hiddens).join().enumerate() {
         let p = pos.get();
         let line = format!("{}: {} {} {}\n", i + 1, p.x, p.y, p.z);
         file.write(line.as_bytes()).unwrap();
