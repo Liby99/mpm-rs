@@ -2,6 +2,7 @@ extern crate specs;
 extern crate nalgebra as na;
 extern crate pbr;
 extern crate rand;
+extern crate rayon;
 
 pub mod utils;
 pub mod components;

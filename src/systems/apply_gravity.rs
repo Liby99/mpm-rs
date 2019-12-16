@@ -1,4 +1,5 @@
 use specs::prelude::*;
+use rayon::prelude::*;
 
 use crate::resources::*;
 
@@ -11,8 +12,8 @@ impl<'a> System<'a> for ApplyGravitySystem {
   );
 
   fn run(&mut self, (gravity, mut grid): Self::SystemData) {
-    for node in &mut grid.nodes {
+    grid.nodes.par_iter_mut().for_each(|node| {
       node.force += gravity.get() * node.mass;
-    }
+    })
   }
 }

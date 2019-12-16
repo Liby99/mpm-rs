@@ -1,4 +1,5 @@
 use specs::prelude::*;
+use rayon::prelude::*;
 
 use crate::resources::*;
 
@@ -8,8 +9,8 @@ impl<'a> System<'a> for GridSetBoundarySystem {
   type SystemData = Write<'a, Grid>;
 
   fn run(&mut self, mut grid: Self::SystemData) {
-    for node in &mut grid.nodes {
+    grid.nodes.par_iter_mut().for_each(|node| {
       node.set_boundary_velocity();
-    }
+    })
   }
 }

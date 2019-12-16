@@ -15,8 +15,7 @@ impl<'a> System<'a> for G2PSystem {
   );
 
   fn run(&mut self, (dt, grid, mut velocities, mut positions): Self::SystemData) {
-    for (velocity, position) in (&mut velocities, &mut positions).join() {
-
+    (&mut velocities, &mut positions).par_join().for_each(|(velocity, position)| {
       // First calculate the new velocity of particle
       let mut new_vel = Vector3f::zeros();
       for (node_index, weight, _) in grid.neighbor_weights(position.get()) {
@@ -30,6 +29,6 @@ impl<'a> System<'a> for G2PSystem {
       // Set the velocity and position
       velocity.set(new_vel);
       position.set(new_pos);
-    }
+    })
   }
 }

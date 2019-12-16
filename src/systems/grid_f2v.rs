@@ -1,4 +1,5 @@
 use specs::prelude::*;
+use rayon::prelude::*;
 
 use crate::resources::*;
 
@@ -11,10 +12,10 @@ impl<'a> System<'a> for GridF2VSystem {
   );
 
   fn run(&mut self, (dt, mut grid): Self::SystemData) {
-    for node in &mut grid.nodes {
+    grid.nodes.par_iter_mut().for_each(|node| {
       if node.mass != 0.0 {
         node.velocity += node.force / node.mass * dt.get();
       }
-    }
+    })
   }
 }

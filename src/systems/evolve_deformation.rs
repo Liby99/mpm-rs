@@ -15,7 +15,7 @@ impl<'a> System<'a> for EvolveDeformationSystem {
   );
 
   fn run(&mut self, (dt, grid, positions, mut deformations): Self::SystemData) {
-    for (position, deformation) in (&positions, &mut deformations).join() {
+    (&positions, &mut deformations).par_join().for_each(|(position, deformation)| {
       let mut grad_vp = Matrix3f::zeros();
       for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
         let node = grid.get_node(node_index);
@@ -23,6 +23,6 @@ impl<'a> System<'a> for EvolveDeformationSystem {
       }
       let new_deformation = (Matrix3f::identity() + dt.get() * grad_vp) * deformation.get();
       deformation.set(new_deformation);
-    }
+    })
   }
 }
