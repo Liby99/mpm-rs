@@ -42,7 +42,6 @@ fn main() {
   world.set_dump_skip(dump_skip);
   world.set_mu(mu);
   world.set_lambda(lambda);
-  world.only_show_random_portion(random_portion);
 
   // Put the boundary
   world.put_vel_dim_boundary(boundary_thickness, boundary_velocity_diminishing);
@@ -66,6 +65,9 @@ fn main() {
       world.put_particle(pos, initial_velocity, particle_mass, par_volume);
     }
   }
+
+  // Make the world only show a portion
+  world.only_show_random_portion(random_portion);
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);
