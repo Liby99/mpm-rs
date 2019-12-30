@@ -6,6 +6,7 @@ use std::io::prelude::*;
 pub use util::Error;
 use util::*;
 
+/// Node is simply a "point", i.e. Vector3f, in `.msh` files
 #[derive(Debug)]
 pub struct Node {
   pub x: f64,
@@ -14,6 +15,9 @@ pub struct Node {
 }
 
 impl Node {
+
+  /// When loading from buffer, the format is [index, x, y, z].
+  /// We don't need `index` here.
   pub fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
     let _ = load_u32(&buf, i)?; // Ignore index
     let x = load_f64(&buf, i)?;
@@ -23,8 +27,14 @@ impl Node {
   }
 }
 
+/// A trait for generalizing element loading
 pub trait Element: Sized {
+
+  /// Should implement load element from buffer method
   fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error>;
+
+  /// Returns the number of nodes inside a single element
+  fn num_nodes() -> u32;
 }
 
 #[derive(Debug)]
@@ -43,6 +53,10 @@ impl Element for Tetrahedron {
     let i4 = (load_u32(&buffer, i)? - 1) as usize;
     Ok(Self { i1, i2, i3, i4 })
   }
+
+  fn num_nodes() -> u32 {
+    4
+  }
 }
 
 #[derive(Debug)]
@@ -58,6 +72,10 @@ impl Element for Triangle {
     let i2 = (load_u32(&buffer, i)? - 1) as usize;
     let i3 = (load_u32(&buffer, i)? - 1) as usize;
     Ok(Self { i1, i2, i3 })
+  }
+
+  fn num_nodes() -> u32 {
+    3
   }
 }
 
@@ -90,9 +108,9 @@ pub struct ElemMesh<E: Element> {
   pub elems: Vec<E>,
 }
 
-pub type TetMesh = ElemMesh<Tetrahedron>;
+pub type TetrahedronMesh = ElemMesh<Tetrahedron>;
 
-pub type TriMesh = ElemMesh<Triangle>;
+pub type TriangleMesh = ElemMesh<Triangle>;
 
 impl<E: Element> ElemMesh<E> {
   pub fn load(filename: &str) -> Result<Self, Error> {
@@ -164,7 +182,7 @@ impl<E: Element> ElemMesh<E> {
 
       // Get nodes per element
       let nodes_per_element = elem_type.num_nodes_per_element()?;
-      if nodes_per_element != 4 {
+      if nodes_per_element != E::num_nodes() {
         return Err(Error::BadElementType);
       }
 
