@@ -3,5 +3,6 @@
 members = [
   "core",
   "lib/msh-rs",
+  "lib/ply-dump",
   "examples",
 ]

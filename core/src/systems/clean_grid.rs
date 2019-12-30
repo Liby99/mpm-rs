@@ -1,5 +1,5 @@
-use specs::prelude::*;
 use rayon::prelude::*;
+use specs::prelude::*;
 
 use crate::resources::Grid;
 

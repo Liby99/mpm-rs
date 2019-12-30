@@ -69,7 +69,7 @@ impl ParticleDeformation {
     Self {
       deformation_gradient: Matrix3f::identity(),
       mu: youngs_modulus / (2.0 * (1.0 + nu)),
-      lambda: youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+      lambda: youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu)),
     }
   }
 }

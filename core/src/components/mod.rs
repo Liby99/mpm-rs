@@ -1,5 +1,5 @@
-mod particle;
 mod marker;
+mod particle;
 
-pub use particle::*;
 pub use marker::*;
+pub use particle::*;

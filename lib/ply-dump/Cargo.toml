@@ -1,8 +1,9 @@
 [package]
-name = "mpm_ply_dump"
+name = "mpm-ply-dump"
 version = "0.1.0"
 authors = ["Ziyang Li <liby99@seas.upenn.edu>"]
 edition = "2018"
 
 [dependencies]
 specs = "0.15"
+mpm-rs = { path = "../../core" }

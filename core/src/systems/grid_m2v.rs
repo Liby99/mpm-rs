@@ -1,8 +1,8 @@
-use specs::prelude::*;
 use rayon::prelude::*;
+use specs::prelude::*;
 
-use crate::utils::*;
 use crate::resources::*;
+use crate::utils::*;
 
 /// Momentum to Velocity System of Grid
 pub struct GridM2VSystem;

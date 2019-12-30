@@ -8,3 +8,4 @@ edition = "2018"
 pbr = "1.0.2"
 mpm-rs = { path = "../core" }
 msh-rs = { path = "../lib/msh-rs" }
+mpm-ply-dump = { path = "../lib/ply-dump" }

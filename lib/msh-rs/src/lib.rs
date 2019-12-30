@@ -1,7 +1,7 @@
 mod util;
 
-use std::io::prelude::*;
 use std::fs::File;
+use std::io::prelude::*;
 
 pub use util::Error;
 use util::*;
@@ -23,7 +23,7 @@ impl Node {
   }
 }
 
-pub trait Element : Sized {
+pub trait Element: Sized {
   fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error>;
 }
 
@@ -72,7 +72,7 @@ impl ElementType {
     match n {
       2 => Ok(Self::Tri),
       4 => Ok(Self::Tetra),
-      _ => Err(Error::BadElementType)
+      _ => Err(Error::BadElementType),
     }
   }
 
@@ -157,7 +157,6 @@ impl<E: Element> ElemMesh<E> {
     let mut elem_read = 0;
     let mut elems = Vec::new();
     while elem_read < num_elements {
-
       // Element header
       let elem_type = ElementType::from_u32(load_u32(&buffer, &mut i)?)?;
       let num_elems = load_u32(&buffer, &mut i)?;
@@ -166,7 +165,7 @@ impl<E: Element> ElemMesh<E> {
       // Get nodes per element
       let nodes_per_element = elem_type.num_nodes_per_element()?;
       if nodes_per_element != 4 {
-        return Err(Error::BadElementType)
+        return Err(Error::BadElementType);
       }
 
       // Go through the current elements

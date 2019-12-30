@@ -1,19 +1,19 @@
 extern crate specs;
 
+use specs::prelude::*;
 use std::fs::File;
 use std::io::Write;
-use specs::prelude::*;
 
-use crate::resources::*;
-use crate::components::*;
+use mpm_rs::components::*;
+use mpm_rs::resources::*;
 
-pub struct DumpSystem {
+pub struct PlyDumpSystem {
   out_dir: String,
   dump_count: usize,
   dump_skip: usize,
 }
 
-impl DumpSystem {
+impl PlyDumpSystem {
   pub fn new(out_dir: &str, dump_skip: usize) -> Self {
     Self {
       out_dir: String::from(out_dir),
@@ -23,7 +23,7 @@ impl DumpSystem {
   }
 }
 
-impl<'a> System<'a> for DumpSystem {
+impl<'a> System<'a> for PlyDumpSystem {
   type SystemData = (
     Read<'a, StepCount>,
     ReadStorage<'a, ParticlePosition>,

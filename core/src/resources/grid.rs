@@ -15,7 +15,7 @@ pub enum Boundary {
   /// Remove the velocity component along surface normal
   /// and multiply the tangential velocity by the factor
   /// Useful for simulating (non-real) friction
-  VelocityDiminish { normal: Vector3f, factor: f32 }
+  VelocityDiminish { normal: Vector3f, factor: f32 },
 }
 
 /// The Node of the Grid
@@ -151,11 +151,7 @@ impl Iterator for WeightIterator {
         let y_in = 0 <= node_index.y && node_index.y < self.dim.y as i32;
         let z_in = 0 <= node_index.z && node_index.z < self.dim.z as i32;
         if x_in && y_in && z_in {
-          let uindex = Vector3u::new(
-            node_index.x as usize,
-            node_index.y as usize,
-            node_index.z as usize,
-          );
+          let uindex = Vector3u::new(node_index.x as usize, node_index.y as usize, node_index.z as usize);
           return Some((uindex, wijk, grad_w));
         }
       } else {

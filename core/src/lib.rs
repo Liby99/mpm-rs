@@ -1,17 +1,17 @@
-extern crate specs;
 extern crate nalgebra as na;
 extern crate rand;
 extern crate rayon;
+extern crate specs;
 
-pub mod utils;
 pub mod components;
 pub mod resources;
 pub mod systems;
+pub mod utils;
 
-pub use utils::*;
 pub use components::*;
 pub use resources::*;
 pub use systems::*;
+pub use utils::*;
 
 pub struct WorldBuilder<'a, 'b> {
   grid: Grid,
@@ -78,15 +78,8 @@ impl<'a, 'b> World<'a, 'b> {
 
   pub fn only_show_random_portion(&mut self, percentage: f32) {
     use specs::prelude::*;
-    let (
-      entities,
-      poses,
-      mut hiddens
-    ): (
-      Entities,
-      ReadStorage<ParticlePosition>,
-      WriteStorage<Hidden>
-    ) = self.world.system_data();
+    let (entities, poses, mut hiddens): (Entities, ReadStorage<ParticlePosition>, WriteStorage<Hidden>) =
+      self.world.system_data();
     for (entity, _) in (&entities, &poses).join() {
       if random() < percentage {
         hiddens.remove(entity);
@@ -126,17 +119,29 @@ impl<'a, 'b> World<'a, 'b> {
     let num_nodes = (thickness / grid.h).ceil() as usize;
     for node_index in grid.indices() {
       let boundary = if node_index.x < num_nodes {
-        Boundary::Sliding { normal: Vector3f::new(1.0, 0.0, 0.0) }
+        Boundary::Sliding {
+          normal: Vector3f::new(1.0, 0.0, 0.0),
+        }
       } else if node_index.x > dim.x - num_nodes {
-        Boundary::Sliding { normal: Vector3f::new(-1.0, 0.0, 0.0) }
+        Boundary::Sliding {
+          normal: Vector3f::new(-1.0, 0.0, 0.0),
+        }
       } else if node_index.y < num_nodes {
-        Boundary::Sliding { normal: Vector3f::new(0.0, 1.0, 0.0) }
+        Boundary::Sliding {
+          normal: Vector3f::new(0.0, 1.0, 0.0),
+        }
       } else if node_index.y > dim.y - num_nodes {
-        Boundary::Sliding { normal: Vector3f::new(0.0, -1.0, 0.0) }
+        Boundary::Sliding {
+          normal: Vector3f::new(0.0, -1.0, 0.0),
+        }
       } else if node_index.z < num_nodes {
-        Boundary::Sliding { normal: Vector3f::new(0.0, 0.0, 1.0) }
+        Boundary::Sliding {
+          normal: Vector3f::new(0.0, 0.0, 1.0),
+        }
       } else if node_index.z > dim.z - num_nodes {
-        Boundary::Sliding { normal: Vector3f::new(0.0, 0.0, -1.0) }
+        Boundary::Sliding {
+          normal: Vector3f::new(0.0, 0.0, -1.0),
+        }
       } else {
         Boundary::None
       };
@@ -150,17 +155,35 @@ impl<'a, 'b> World<'a, 'b> {
     let num_nodes = (thickness / grid.h).ceil() as usize;
     for node_index in grid.indices() {
       let boundary = if node_index.x < num_nodes {
-        Boundary::VelocityDiminish { normal: Vector3f::new(1.0, 0.0, 0.0), factor }
+        Boundary::VelocityDiminish {
+          normal: Vector3f::new(1.0, 0.0, 0.0),
+          factor,
+        }
       } else if node_index.x > dim.x - num_nodes {
-        Boundary::VelocityDiminish { normal: Vector3f::new(-1.0, 0.0, 0.0), factor }
+        Boundary::VelocityDiminish {
+          normal: Vector3f::new(-1.0, 0.0, 0.0),
+          factor,
+        }
       } else if node_index.y < num_nodes {
-        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, 1.0, 0.0), factor }
+        Boundary::VelocityDiminish {
+          normal: Vector3f::new(0.0, 1.0, 0.0),
+          factor,
+        }
       } else if node_index.y > dim.y - num_nodes {
-        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, -1.0, 0.0), factor }
+        Boundary::VelocityDiminish {
+          normal: Vector3f::new(0.0, -1.0, 0.0),
+          factor,
+        }
       } else if node_index.z < num_nodes {
-        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, 0.0, 1.0), factor }
+        Boundary::VelocityDiminish {
+          normal: Vector3f::new(0.0, 0.0, 1.0),
+          factor,
+        }
       } else if node_index.z > dim.z - num_nodes {
-        Boundary::VelocityDiminish { normal: Vector3f::new(0.0, 0.0, -1.0), factor }
+        Boundary::VelocityDiminish {
+          normal: Vector3f::new(0.0, 0.0, -1.0),
+          factor,
+        }
       } else {
         Boundary::None
       };
@@ -170,7 +193,9 @@ impl<'a, 'b> World<'a, 'b> {
 
   pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32, youngs_modulus: f32, nu: f32) {
     use specs::prelude::*;
-    self.world.create_entity()
+    self
+      .world
+      .create_entity()
       .with(ParticlePosition(pos))
       .with(ParticleVelocity(vel))
       .with(ParticleMass(m))
@@ -179,7 +204,16 @@ impl<'a, 'b> World<'a, 'b> {
       .build();
   }
 
-  pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize, youngs_modulus: f32, nu: f32) {
+  pub fn put_ball(
+    &mut self,
+    center: Vector3f,
+    radius: f32,
+    vel: Vector3f,
+    mass: f32,
+    n: usize,
+    youngs_modulus: f32,
+    nu: f32,
+  ) {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
@@ -192,7 +226,16 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, vel: Vector3f, mass: f32, n: usize, youngs_modulus: f32, nu: f32) {
+  pub fn put_cube(
+    &mut self,
+    min: Vector3f,
+    max: Vector3f,
+    vel: Vector3f,
+    mass: f32,
+    n: usize,
+    youngs_modulus: f32,
+    nu: f32,
+  ) {
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;

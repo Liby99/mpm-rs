@@ -1,5 +1,5 @@
-use rand::Rng;
 use super::*;
+use rand::Rng;
 
 pub fn random() -> f32 {
   let mut rng = rand::thread_rng();

@@ -1,8 +1,8 @@
 use specs::prelude::*;
 
-use crate::utils::*;
-use crate::resources::*;
 use crate::components::*;
+use crate::resources::*;
+use crate::utils::*;
 
 /// Compute the derivative of Jacobian with respect to the matrix.
 ///
@@ -38,9 +38,15 @@ use crate::components::*;
 fn dj_df(m: Matrix3f) -> Matrix3f {
   let (a, b, c, d, e, f, g, h, i) = (m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
   Matrix3f::new(
-    e * i - f * h, f * g - d * i, d * h - e * g,
-    c * h - b * i, a * i - c * g, b * g - a * h,
-    b * f - c * e, c * d - a * f, a * e - b * d,
+    e * i - f * h,
+    f * g - d * i,
+    d * h - e * g,
+    c * h - b * i,
+    a * i - c * g,
+    b * g - a * h,
+    b * f - c * e,
+    c * d - a * f,
+    a * e - b * d,
   )
 }
 
@@ -53,11 +59,7 @@ fn get_rotation(deformation: Matrix3f) -> Matrix3f {
     (Some(u), Some(v_t)) => {
       // Invert the related U and Sigma component
       let u = if u.determinant() < 0.0 {
-        Matrix3f::new(
-          u[0], u[1], -u[2],
-          u[3], u[4], -u[5],
-          u[6], u[7], -u[8],
-        )
+        Matrix3f::new(u[0], u[1], -u[2], u[3], u[4], -u[5], u[6], u[7], -u[8])
       } else {
         u
       };
@@ -66,9 +68,7 @@ fn get_rotation(deformation: Matrix3f) -> Matrix3f {
       // Invert the related V^T and Sigma component
       let v_t = if v_t.determinant() < 0.0 {
         Matrix3f::new(
-          v_t[0], v_t[1], v_t[2],
-          v_t[3], v_t[4], v_t[5],
-          -v_t[6], -v_t[7], -v_t[8],
+          v_t[0], v_t[1], v_t[2], v_t[3], v_t[4], v_t[5], -v_t[6], -v_t[7], -v_t[8],
         )
       } else {
         v_t
