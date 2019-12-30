@@ -19,25 +19,15 @@ fn main() {
   let dt = 0.0005;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
-  let youngs_modulus = 200000.0;
+  let youngs_modulus = 150000.0;
   let nu = 0.3;
   let boundary_thickness = 0.04;
   let boundary_velocity_diminishing = 0.95;
-  let density = 2500.0;
-  let particle_mass = 0.001;
+  let density = 1500.0;
+  let particle_mass = 0.005;
   let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
   let bunny_scale = 3.5;
   let bunny_offset = Vector3f::new(0.5, 0.3, 0.5);
-  let ball_1_position = Vector3f::new(0.2, 0.4, 0.8);
-  let ball_2_position = Vector3f::new(0.8, 0.8, 0.5);
-  let ball_3_position = Vector3f::new(0.4, 0.6, 0.6);
-  let ball_1_velocity = Vector3f::new(1.5, 3.0, -2.0);
-  let ball_2_velocity = Vector3f::new(8.0, -5.0, 1.0);
-  let ball_3_velocity = Vector3f::new(-10.0, 6.0, 0.5);
-  let ball_radius : f32 = 0.1;
-  let ball_volume = ball_radius.powi(3) * std::f32::consts::PI;
-  let ball_mass = density * ball_volume;
-  let ball_num_particles = (ball_mass / particle_mass) as usize;
   let output_random_portion = 0.1;
 
   // Create output directory
@@ -73,11 +63,6 @@ fn main() {
       world.put_particle(pos, bunny_velocity, particle_mass, par_volume, youngs_modulus, nu);
     }
   }
-
-  // Put other balls (to make the scene more interesting)
-  world.put_ball(ball_1_position, ball_radius, ball_1_velocity, ball_mass, ball_num_particles, youngs_modulus, nu);
-  world.put_ball(ball_2_position, ball_radius, ball_2_velocity, ball_mass, ball_num_particles, youngs_modulus, nu);
-  world.put_ball(ball_3_position, ball_radius, ball_3_velocity, ball_mass, ball_num_particles, youngs_modulus, nu);
 
   // Make the world only show a portion
   world.only_show_random_portion(output_random_portion);
