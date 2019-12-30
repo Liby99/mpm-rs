@@ -23,7 +23,7 @@ fn main() {
 
   // Initialize the world, use PlyDumpSystem to output ply to `outdir`
   let mut world = WorldBuilder::new(world_size, grid_h)
-    .add_local_system(PlyDumpSystem::new(outdir, dump_skip))
+    .with_system(PlyDumpSystem::new(outdir, dump_skip))
     .build();
 
   // Set parameters

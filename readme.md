@@ -7,34 +7,52 @@ MPM algorithm implemented in Rust, empowered by [specs](https://specs.amethyst.r
 ``` rust
 fn main() {
 
-  // Create a world with size 1 * 1 * 1, and grid spacing 0.02
-  let mut world = mpm_rs::World::new(Vector3f::new(1.0, 1.0, 1.0), 0.02);
+  // Create a world
+  let mut world =
+    mpm_rs::WorldBuilder::new( // Create a builder
+      Vector3f::new(1.0, 1.0, 1.0), // Size of 1 x 1 x 1
+      0.02 // grid spacing 0.02
+    )
+    .with_system(mpm_ply_dump::PlyDumpSystem::new("result", 3)) // Dump to "result" directory, 1 file per 3 steps
+    .build(); // Build the world
 
   // Create a boundary to the world with a thickness of 0.06
   world.put_boundary(0.06);
 
-  // Create a ball centered at (0.5, 0.4, 0.5) with radius 0.1
-  // The ball will contain 10000 particles and weight 10.0
-  world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, Vector3f::zeros(), 10.0, 10000);
+  // Create a ball
+  world.put_ball(
+    Vector3f::new(0.5, 0.4, 0.5), // center of the ball
+    0.1, // radius of the ball
+    Vector3f::zeros(), // initial velocity of the ball
+    10.0, // mass of the ball
+    10000, // number of particles inside this ball
+    10000.0, // young's modulus
+    0.2, // nu
+  );
 
-  // Loop 500 steps
+  // Run 500 steps
   for _ in 0..500 {
-    world.step();
+    world.step(); // Step once
   }
 }
 ```
 
-## Compile and Run Tests
+## Compile and Run Examples
 
-To compile and run test, do
+To compile and run examples, do
 
 ```
 $ cargo build --release
-$ cargo run --release --bin mickey_mouse
+$ cargo run --release --example mickey_mouse
 ```
 
 Here we prefer `release` because it's so much faster than `debug`. You can also change
 the name `mickey_mouse` to other test name located in [src/bin](src/bin).
+
+`mickey_mouse` example will output `.ply` files into the directory `result/mickey_mouse`.
+You can visualize the result file using Houdini.
+
+Check out more examples [here](examples/examples/).
 
 ## Behind the Hood
 

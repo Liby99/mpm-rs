@@ -47,7 +47,7 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
     Self { grid, builder }
   }
 
-  pub fn add_local_system<T: for<'c> specs::RunNow<'c> + 'b>(mut self, system: T) -> Self {
+  pub fn with_system<T: for<'c> specs::RunNow<'c> + 'b>(mut self, system: T) -> Self {
     self.builder.add_thread_local(system);
     self
   }
