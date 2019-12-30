@@ -20,8 +20,6 @@ fn main() {
   let grid_h = 0.02;
   let youngs_modulus = 200000.0;
   let nu = 0.3;
-  let mu = youngs_modulus / (2.0 * (1.0 + nu));
-  let lambda = youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
   let boundary_thickness = 0.04;
   let boundary_velocity_diminishing = 0.95;
   let density = 2500.0;
@@ -51,8 +49,6 @@ fn main() {
   world.set_dt(dt);
   world.set_output_dir(outdir);
   world.set_dump_skip(dump_skip);
-  world.set_mu(mu);
-  world.set_lambda(lambda);
 
   // Put the boundary
   world.put_vel_dim_boundary(boundary_thickness, boundary_velocity_diminishing);
@@ -73,20 +69,17 @@ fn main() {
     let par_volume = volume / num_pars;
     for _ in 0..num_pars as usize {
       let pos = random_point_in_tetra(p1, p2, p3, p4);
-      world.put_particle(pos, bunny_velocity, particle_mass, par_volume);
+      world.put_particle(pos, bunny_velocity, particle_mass, par_volume, youngs_modulus, nu);
     }
   }
 
   // Put other balls (to make the scene more interesting)
-  world.put_ball(ball_1_position, ball_radius, ball_1_velocity, ball_mass, ball_num_particles);
-  world.put_ball(ball_2_position, ball_radius, ball_2_velocity, ball_mass, ball_num_particles);
-  world.put_ball(ball_3_position, ball_radius, ball_3_velocity, ball_mass, ball_num_particles);
+  world.put_ball(ball_1_position, ball_radius, ball_1_velocity, ball_mass, ball_num_particles, youngs_modulus, nu);
+  world.put_ball(ball_2_position, ball_radius, ball_2_velocity, ball_mass, ball_num_particles, youngs_modulus, nu);
+  world.put_ball(ball_3_position, ball_radius, ball_3_velocity, ball_mass, ball_num_particles, youngs_modulus, nu);
 
   // Make the world only show a portion
   world.only_show_random_portion(output_random_portion);
-
-  // Log the parameters
-  println!("Mu: {}, Lambda: {}, #Particles: {}", mu, lambda, "Not Implemented");
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

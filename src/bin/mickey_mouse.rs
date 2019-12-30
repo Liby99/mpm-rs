@@ -27,14 +27,12 @@ fn main() {
   world.set_dt(dt);
   world.set_output_dir(outdir);
   world.set_dump_skip(dump_skip);
-  world.set_mu(mu);
-  world.set_lambda(lambda);
 
   // Put the particles
   world.put_sliding_boundary(boundary_thickness);
-  world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, Vector3f::zeros(), 10.0, 10000);
-  world.put_ball(Vector3f::new(0.58, 0.6, 0.58), 0.05, Vector3f::zeros(), 1.25, 1250);
-  world.put_ball(Vector3f::new(0.42, 0.6, 0.42), 0.05, Vector3f::zeros(), 1.25, 1250);
+  world.put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, Vector3f::zeros(), 10.0, 10000, youngs_modulus, nu);
+  world.put_ball(Vector3f::new(0.58, 0.6, 0.58), 0.05, Vector3f::zeros(), 1.25, 1250, youngs_modulus, nu);
+  world.put_ball(Vector3f::new(0.42, 0.6, 0.42), 0.05, Vector3f::zeros(), 1.25, 1250, youngs_modulus, nu);
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

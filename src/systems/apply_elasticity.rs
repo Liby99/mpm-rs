@@ -95,18 +95,16 @@ pub struct ApplyElasticitySystem;
 
 impl<'a> System<'a> for ApplyElasticitySystem {
   type SystemData = (
-    Read<'a, Mu>,
-    Read<'a, Lambda>,
     Write<'a, Grid>,
     ReadStorage<'a, ParticlePosition>,
     ReadStorage<'a, ParticleVolume>,
     ReadStorage<'a, ParticleDeformation>,
   );
 
-  fn run(&mut self, (mu, lambda, mut grid, positions, volumes, deformations): Self::SystemData) {
+  fn run(&mut self, (mut grid, positions, volumes, deformations): Self::SystemData) {
     for (position, volume, deformation) in (&positions, &volumes, &deformations).join() {
-      let stress = fixed_corotated(deformation.get(), mu.get(), lambda.get());
-      let vp0pft = volume.get() * stress * deformation.get().transpose();
+      let stress = fixed_corotated(deformation.deformation_gradient, deformation.mu, deformation.lambda);
+      let vp0pft = volume.get() * stress * deformation.deformation_gradient.transpose();
       for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
         let node = grid.get_node_mut(node_index);
         node.force -= vp0pft * grad_w;

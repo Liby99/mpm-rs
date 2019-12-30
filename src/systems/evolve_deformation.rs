@@ -21,8 +21,8 @@ impl<'a> System<'a> for EvolveDeformationSystem {
         let node = grid.get_node(node_index);
         grad_vp += node.velocity * grad_w.transpose();
       }
-      let new_deformation = (Matrix3f::identity() + dt.get() * grad_vp) * deformation.get();
-      deformation.set(new_deformation);
+      let new_deformation = (Matrix3f::identity() + dt.get() * grad_vp) * deformation.deformation_gradient;
+      deformation.deformation_gradient = new_deformation;
     })
   }
 }

@@ -58,15 +58,19 @@ impl Component for ParticleVelocity {
   type Storage = VecStorage<Self>;
 }
 
-pub struct ParticleDeformation(pub Matrix3f);
+pub struct ParticleDeformation {
+  pub deformation_gradient: Matrix3f,
+  pub mu: f32,
+  pub lambda: f32,
+}
 
 impl ParticleDeformation {
-  pub fn get(&self) -> Matrix3f {
-    self.0
-  }
-
-  pub fn set(&mut self, new_def: Matrix3f) {
-    self.0 = new_def;
+  pub fn new(youngs_modulus: f32, nu: f32) -> Self {
+    Self {
+      deformation_gradient: Matrix3f::identity(),
+      mu: youngs_modulus / (2.0 * (1.0 + nu)),
+      lambda: youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+    }
   }
 }
 

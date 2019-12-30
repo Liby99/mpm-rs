@@ -74,14 +74,6 @@ impl<'a, 'b> World<'a, 'b> {
     self.world.fetch_mut::<DumpSkip>().set(dump_skip);
   }
 
-  pub fn set_mu(&mut self, mu: f32) {
-    self.world.fetch_mut::<Mu>().set(mu);
-  }
-
-  pub fn set_lambda(&mut self, lambda: f32) {
-    self.world.fetch_mut::<Lambda>().set(lambda);
-  }
-
   pub fn only_show_random_portion(&mut self, percentage: f32) {
     use specs::prelude::*;
     let (
@@ -174,18 +166,18 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32) {
+  pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32, youngs_modulus: f32, nu: f32) {
     use specs::prelude::*;
     self.world.create_entity()
       .with(ParticlePosition(pos))
       .with(ParticleVelocity(vel))
       .with(ParticleMass(m))
       .with(ParticleVolume(v))
-      .with(ParticleDeformation(Matrix3f::identity()))
+      .with(ParticleDeformation::new(youngs_modulus, nu))
       .build();
   }
 
-  pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize) {
+  pub fn put_ball(&mut self, center: Vector3f, radius: f32, vel: Vector3f, mass: f32, n: usize, youngs_modulus: f32, nu: f32) {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
@@ -194,11 +186,11 @@ impl<'a, 'b> World<'a, 'b> {
     // Then add n particles
     for _ in 0..n {
       let pos = random_point_in_sphere(center, radius);
-      self.put_particle(pos, vel, ind_mass, ind_volume);
+      self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
     }
   }
 
-  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, vel: Vector3f, mass: f32, n: usize) {
+  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, vel: Vector3f, mass: f32, n: usize, youngs_modulus: f32, nu: f32) {
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;
@@ -208,7 +200,7 @@ impl<'a, 'b> World<'a, 'b> {
     // Then add n particles
     for _ in 0..n {
       let pos = random_point_in_cube(min, max);
-      self.put_particle(pos, vel, ind_mass, ind_volume);
+      self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
     }
   }
 }
