@@ -1,13 +1,10 @@
+mod util;
+
 use std::io::prelude::*;
 use std::fs::File;
 
-#[derive(Debug)]
-pub enum Error {
-  CannotReadFile,
-  BadValue(usize),
-  BadInteger(usize),
-  BadElementType,
-}
+pub use util::Error;
+use util::*;
 
 #[derive(Debug)]
 pub struct Node {
@@ -16,68 +13,14 @@ pub struct Node {
   pub z: f64,
 }
 
-fn check(buf: &Vec<u8>, id: &mut usize, val: u8) -> Result<(), Error> {
-  if buf[*id] == val {
-    *id += 1;
-    Ok(())
-  } else {
-    Err(Error::BadValue(*id))
+impl Node {
+  pub fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
+    let _ = load_u32(&buf, i)?; // Ignore index
+    let x = load_f64(&buf, i)?;
+    let y = load_f64(&buf, i)?;
+    let z = load_f64(&buf, i)?;
+    Ok(Node { x, y, z })
   }
-}
-
-fn check_array(buf: &Vec<u8>, start: &mut usize, val: &Vec<u8>) -> Result<(), Error> {
-  for v in val {
-    check(buf, start, *v)?;
-  }
-  Ok(())
-}
-
-fn check_str(buf: &Vec<u8>, start: &mut usize, s: &str) -> Result<(), Error> {
-  check_array(buf, start, &Vec::from(s.as_bytes()))
-}
-
-fn load_ascii_u32(buf: &Vec<u8>, i: &mut usize, end: u8) -> Result<u32, Error> {
-  let mut char_vec = Vec::new();
-  while buf[*i] != end {
-    char_vec.push(buf[*i]);
-    *i += 1;
-  }
-  check(buf, i, end)?;
-  let num_str = String::from_utf8_lossy(char_vec.as_slice());
-  num_str.parse::<u32>().map_err(|_| Error::BadInteger(*i))
-}
-
-fn load_u32(buf: &Vec<u8>, start: &mut usize) -> Result<u32, Error> {
-  let b1 = buf[*start] as u32;
-  let b2 = buf[*start + 1] as u32;
-  let b3 = buf[*start + 2] as u32;
-  let b4 = buf[*start + 3] as u32;
-  let n = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
-  *start += 4;
-  Ok(n)
-}
-
-fn load_f64(buf: &Vec<u8>, start: &mut usize) -> Result<f64, Error> {
-  let b1 = buf[*start] as u64;
-  let b2 = buf[*start + 1] as u64;
-  let b3 = buf[*start + 2] as u64;
-  let b4 = buf[*start + 3] as u64;
-  let b5 = buf[*start + 4] as u64;
-  let b6 = buf[*start + 5] as u64;
-  let b7 = buf[*start + 6] as u64;
-  let b8 = buf[*start + 7] as u64;
-  let n = (b8 << 56) | (b7 << 48) | (b6 << 40) | (b5 << 32) | (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
-  let f = f64::from_bits(n);
-  *start += 8;
-  Ok(f)
-}
-
-fn load_node(buf: &Vec<u8>, start: &mut usize) -> Result<Node, Error> {
-  let _ = load_u32(&buf, start)?; // Ignore index
-  let x = load_f64(&buf, start)?;
-  let y = load_f64(&buf, start)?;
-  let z = load_f64(&buf, start)?;
-  Ok(Node { x, y, z })
 }
 
 pub trait Element : Sized {
@@ -142,7 +85,7 @@ impl ElementType {
 }
 
 #[derive(Debug)]
-pub struct ElemMesh<E : Element> {
+pub struct ElemMesh<E: Element> {
   pub nodes: Vec<Node>,
   pub elems: Vec<E>,
 }
@@ -151,7 +94,7 @@ pub type TetMesh = ElemMesh<Tetrahedron>;
 
 pub type TriMesh = ElemMesh<Triangle>;
 
-impl<E : Element> ElemMesh<E> {
+impl<E: Element> ElemMesh<E> {
   pub fn load(filename: &str) -> Result<Self, Error> {
     // Open file
     let mut file = File::open(filename).map_err(|_| Error::CannotReadFile)?;
@@ -197,7 +140,7 @@ impl<E : Element> ElemMesh<E> {
     // Parse nodes
     let mut nodes = Vec::new();
     for _ in 0..num_nodes {
-      let node = load_node(&buffer, &mut i)?;
+      let node = Node::from_buffer(&buffer, &mut i)?;
       nodes.push(node);
     }
 
