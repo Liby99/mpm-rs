@@ -3,10 +3,8 @@ extern crate mpm_rs;
 extern crate nalgebra as na;
 extern crate specs;
 
+mod ending;
 mod renderer;
-
-use std::sync::mpsc;
-use std::thread;
 
 use specs::prelude::*;
 
@@ -15,23 +13,20 @@ use kiss3d::planar_camera::PlanarCamera;
 use kiss3d::post_processing::PostProcessingEffect;
 use kiss3d::renderer::Renderer;
 use kiss3d::window::{State, Window};
+use na::Point3;
 
 use mpm_rs::components::ParticlePosition;
-use mpm_rs::Vector3f;
 
 use renderer::PointCloudRenderer;
+pub use ending::Ending;
 
-struct Message(pub Vec<Vector3f>);
-
-struct AppState {
-  renderer: PointCloudRenderer,
-  receiver: mpsc::Receiver<Message>,
+pub struct WindowState {
+  pub points: Vec<Point3<f32>>,
+  pub renderer: PointCloudRenderer,
 }
 
-impl State for AppState {
-  fn cameras_and_effect_and_renderer(
-    &mut self,
-  ) -> (
+impl State for WindowState {
+  fn cameras_and_effect_and_renderer(&mut self) -> (
     Option<&mut dyn Camera>,
     Option<&mut dyn PlanarCamera>,
     Option<&mut dyn Renderer>,
@@ -41,44 +36,44 @@ impl State for AppState {
   }
 
   fn step(&mut self, _: &mut Window) {
-    match self.receiver.try_recv() {
-      Ok(Message(points)) => {
-        self.renderer.set(points)
-      },
-      _ => (),
-    }
+    self.renderer.set(&self.points);
   }
 }
 
 pub struct WindowSystem {
-  sender: mpsc::Sender<Message>,
+  window: Window,
+  state: WindowState,
 }
 
 impl Default for WindowSystem {
   fn default() -> Self {
-    let (sender, receiver) = mpsc::channel();
-
-    thread::spawn(move || {
-      let window = Window::new("MPM Viewer");
-      let app = AppState {
-        renderer: PointCloudRenderer::new(4.0),
-        receiver: receiver,
-      };
-      window.render_loop(app);
-    });
-
-    Self { sender }
+    let window = Window::new("MPM Viewer");
+    let renderer = PointCloudRenderer::new(4.0);
+    let state = WindowState { points: Vec::new(), renderer };
+    Self { window, state }
   }
 }
 
 impl<'a> System<'a> for WindowSystem {
-  type SystemData = ReadStorage<'a, ParticlePosition>;
+  type SystemData = (
+    Write<'a, Ending>,
+    ReadStorage<'a, ParticlePosition>
+  );
 
-  fn run(&mut self, poses: Self::SystemData) {
-    let mut ps = vec![];
+  fn run(&mut self, (mut ending, poses): Self::SystemData) {
+
+    // First construct points
+    let mut points = vec![];
     for ParticlePosition(pos) in (&poses).join() {
-      ps.push(pos.clone());
+      points.push(Point3::new(pos.x, pos.y, pos.z));
     }
-    let _ = self.sender.send(Message(ps));
+
+    // Then update points
+    self.state.points = points;
+
+    // Finally render the window
+    if !self.window.render_with_state(&mut self.state) {
+      ending.set_ended();
+    }
   }
 }

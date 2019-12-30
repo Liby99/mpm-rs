@@ -63,8 +63,8 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
 }
 
 pub struct World<'a, 'b> {
+  pub world: specs::prelude::World,
   dispatcher: specs::Dispatcher<'a, 'b>,
-  world: specs::prelude::World,
 }
 
 impl<'a, 'b> World<'a, 'b> {

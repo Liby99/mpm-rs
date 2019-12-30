@@ -1,8 +1,9 @@
-use kiss3d::camera::Camera;
+use kiss3d::resource::{Effect, ShaderAttribute, ShaderUniform, GPUVec,
+  BufferType, AllocationType};
 use kiss3d::context::Context;
 use kiss3d::renderer::Renderer;
-use kiss3d::resource::{AllocationType, BufferType, Effect, GPUVec, ShaderAttribute, ShaderUniform};
-use na::{Matrix4, Point3, Vector3};
+use kiss3d::camera::Camera;
+use na::{Point3, Matrix4};
 
 pub struct PointCloudRenderer {
   shader: Effect,
@@ -29,7 +30,7 @@ impl PointCloudRenderer {
     }
   }
 
-  pub fn set(&mut self, points: Vec<Vector3<f32>>) {
+  pub fn set(&mut self, points: &Vec<Point3<f32>>) {
     if let Some(colored_points) = self.colored_points.data_mut() {
       colored_points.clear();
       for p in points {

@@ -1,9 +1,7 @@
 use mpm_viewer::*;
 use mpm_rs::*;
-use pbr::ProgressBar;
 
 fn main() {
-  let cycles = 1500;
   let dt = 0.001;
   let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
@@ -37,10 +35,7 @@ fn main() {
   );
 
   // Generate progressbar and let it run
-  let mut pb = ProgressBar::new(cycles);
-  for _ in 0..cycles {
-    pb.inc();
+  while !world.world.fetch::<Ending>().is_ended() {
     world.step();
   }
-  pb.finish_print("Finished");
 }
