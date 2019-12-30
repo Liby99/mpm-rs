@@ -1,8 +1,8 @@
-use std::time::SystemTime;
-use pbr::ProgressBar;
-use mpm_rs::{WorldBuilder, Vector3f, random_point_in_tetra};
-use msh_rs::{TetrahedronMesh, Node};
 use mpm_ply_dump::PlyDumpSystem;
+use mpm_rs::{random_point_in_tetra, Vector3f, WorldBuilder};
+use msh_rs::{Node, TetrahedronMesh};
+use pbr::ProgressBar;
+use std::time::SystemTime;
 
 fn node_to_vec(node: &Node) -> Vector3f {
   Vector3f::new(node.x as f32, node.y as f32, node.z as f32)

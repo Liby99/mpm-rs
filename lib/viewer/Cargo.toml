@@ -6,5 +6,6 @@ edition = "2018"
 
 [dependencies]
 specs = "0.15"
-nalgebra = "0.18"
 kiss3d = "0.21"
+nalgebra = "*"
+mpm-rs = { path = "../../core" }

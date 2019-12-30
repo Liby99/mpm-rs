@@ -15,7 +15,6 @@ pub struct Node {
 }
 
 impl Node {
-
   /// When loading from buffer, the format is [index, x, y, z].
   /// We don't need `index` here.
   pub fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
@@ -29,7 +28,6 @@ impl Node {
 
 /// A trait for generalizing element loading
 pub trait Element: Sized {
-
   /// Should implement load element from buffer method
   fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error>;
 
