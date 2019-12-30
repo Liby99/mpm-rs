@@ -1,6 +1,5 @@
 extern crate specs;
 extern crate nalgebra as na;
-extern crate pbr;
 extern crate rand;
 extern crate rayon;
 
@@ -48,8 +47,8 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
     Self { grid, builder }
   }
 
-  pub fn dump_to(mut self, dir: &str, dump_skip: usize) -> Self {
-    self.builder.add_thread_local(DumpSystem::new(dir, dump_skip));
+  pub fn add_local_system<T: for<'c> specs::RunNow<'c> + 'b>(mut self, system: T) -> Self {
+    self.builder.add_thread_local(system);
     self
   }
 

@@ -1,5 +1,5 @@
 [package]
-name = "visualizer"
+name = "mpm-viewer"
 version = "0.1.0"
 authors = ["Ziyang Li <liby99@seas.upenn.edu>"]
 edition = "2018"

@@ -1,3 +1,5 @@
+extern crate specs;
+
 use std::fs::File;
 use std::io::Write;
 use specs::prelude::*;

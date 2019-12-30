@@ -8,7 +8,6 @@ mod grid_f2v;
 mod grid_set_boundary;
 mod evolve_deformation;
 mod g2p;
-mod dump;
 
 pub use step_counter::*;
 pub use clean_grid::*;
@@ -20,4 +19,3 @@ pub use grid_f2v::*;
 pub use grid_set_boundary::*;
 pub use evolve_deformation::*;
 pub use g2p::*;
-pub use dump::*;
