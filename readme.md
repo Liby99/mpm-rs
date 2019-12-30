@@ -5,15 +5,14 @@ MPM algorithm implemented in Rust, empowered by [specs](https://specs.amethyst.r
 ## Use as a Library
 
 ``` rust
+use mpm_rs::*;
+use mpm_ply_dump::*;
+
 fn main() {
 
   // Create a world
-  let mut world =
-    mpm_rs::WorldBuilder::new( // Create a builder
-      Vector3f::new(1.0, 1.0, 1.0), // Size of 1 x 1 x 1
-      0.02 // grid spacing 0.02
-    )
-    .with_system(mpm_ply_dump::PlyDumpSystem::new("result", 3)) // Dump to "result" directory, 1 file per 3 steps
+  let mut world = WorldBuilder::new(Vector3f::new(1.0, 1.0, 1.0), 0.02)
+    .with_system(PlyDumpSystem::new("result", 3)) // Dump to "result"
     .build(); // Build the world
 
   // Create a boundary to the world with a thickness of 0.06
