@@ -45,13 +45,19 @@ $ cargo build --release
 $ cargo run --release --example mickey_mouse
 ```
 
-Here we prefer `release` because it's so much faster than `debug`. You can also change
-the name `mickey_mouse` to other test name located in [src/bin](src/bin).
+Here we prefer `release` because it's so much faster than `debug`. `mickey_mouse` example
+will output `.ply` files into the directory `result/mickey_mouse`. You can visualize the
+result file using Houdini. You can check out more examples [here](examples/examples/).
 
-`mickey_mouse` example will output `.ply` files into the directory `result/mickey_mouse`.
-You can visualize the result file using Houdini.
+## Folder structure
 
-Check out more examples [here](examples/examples/).
+A pure MPM simulation framework is implemented in [`core/`](core/).
+
+A `.msh` loader (tetrahedron mesh loader) is implemented here in [`lib/msh-rs`](lib/msh-rs/).
+
+A `.ply` file exporter is implemented here in [`lib/ply-dump`](lib/ply-dump/).
+
+Other examples are located here: [`examples/examples`](examples/examples).
 
 ## Behind the Hood
 
