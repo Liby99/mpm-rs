@@ -1,0 +1,10 @@
+[package]
+name = "mpm_examples"
+version = "0.1.0"
+authors = ["Liby Lee <liby99@icloud.com>"]
+edition = "2018"
+
+[dependencies]
+pbr = "1.0.2"
+mpm-rs = { path = "../core" }
+msh-rs = { path = "../lib/msh-rs" }

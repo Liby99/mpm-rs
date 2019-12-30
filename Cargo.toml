@@ -1,15 +1,7 @@
-[package]
-name = "mpm-rs"
-version = "0.1.0"
-authors = ["Ziyang Li <liby99@seas.upenn.edu>"]
-edition = "2018"
+[workspace]
 
-[dependencies]
-specs = "0.15"
-nalgebra = "0.18"
-rand = "0.7.2"
-rayon = "1.2"
-msh_rs = { path = "lib/msh-rs" }
-
-[dev-dependencies]
-pbr = "1.0"
+members = [
+  "core",
+  "lib/msh-rs",
+  "examples",
+]
