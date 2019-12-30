@@ -6,28 +6,32 @@ use crate::resources::*;
 use crate::components::*;
 
 pub struct DumpSystem {
+  out_dir: String,
   dump_count: usize,
+  dump_skip: usize,
 }
 
-impl Default for DumpSystem {
-  fn default() -> Self {
-    Self { dump_count: 0 }
+impl DumpSystem {
+  pub fn new(out_dir: &str, dump_skip: usize) -> Self {
+    Self {
+      out_dir: String::from(out_dir),
+      dump_count: 0,
+      dump_skip,
+    }
   }
 }
 
 impl<'a> System<'a> for DumpSystem {
   type SystemData = (
-    Read<'a, OutputDirectory>,
     Read<'a, StepCount>,
-    Read<'a, DumpSkip>,
     ReadStorage<'a, ParticlePosition>,
     ReadStorage<'a, Hidden>,
   );
 
-  fn run(&mut self, (out_dir, step_count, dump_skip, positions, hiddens): Self::SystemData) {
-    if dump_skip.need_dump(step_count.get()) {
+  fn run(&mut self, (step_count, positions, hiddens): Self::SystemData) {
+    if step_count.get() % self.dump_skip == 0 {
       self.dump_count += 1;
-      let filename = format!("{}/{}.poly", out_dir.get(), self.dump_count);
+      let filename = format!("{}/{}.poly", self.out_dir, self.dump_count);
       let mut file = File::create(filename).unwrap();
       file.write(b"POINTS\n").unwrap();
       for (i, (pos, _)) in (&positions, !&hiddens).join().enumerate() {

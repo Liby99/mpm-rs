@@ -14,12 +14,12 @@ pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
-pub struct World<'a, 'b> {
-  dispatcher: specs::Dispatcher<'a, 'b>,
-  world: specs::prelude::World,
+pub struct WorldBuilder<'a, 'b> {
+  grid: Grid,
+  builder: specs::prelude::DispatcherBuilder<'a, 'b>,
 }
 
-impl<'a, 'b> World<'a, 'b> {
+impl<'a, 'b> WorldBuilder<'a, 'b> {
   pub fn new(size: Vector3f, h: f32) -> Self {
     use specs::prelude::*;
 
@@ -30,8 +30,7 @@ impl<'a, 'b> World<'a, 'b> {
     let grid_dim = Vector3u::new(x_dim, y_dim, z_dim);
     let grid = Grid::new(grid_dim, h);
 
-    // Then initialize the specs::world
-    let mut world = World::new();
+    // Then create basic builder
     let mut builder = DispatcherBuilder::new();
 
     // Put all systems into the world
@@ -45,33 +44,37 @@ impl<'a, 'b> World<'a, 'b> {
     builder.add(GridSetBoundarySystem, "grid_set_boundary", &["grid_f2v"]);
     builder.add(EvolveDeformationSystem, "evolve_deformation", &["grid_set_boundary"]);
     builder.add(G2PSystem, "g2p", &["grid_set_boundary"]);
-    builder.add_thread_local(DumpSystem::default());
 
-    // Build the world
-    let mut dispatcher = builder.build();
-    dispatcher.setup(&mut world);
-
-    // Put our grid into the world
-    *world.fetch_mut::<Grid>() = grid;
-
-    // Return
-    Self { dispatcher, world }
+    Self { grid, builder }
   }
 
+  pub fn dump_to(mut self, dir: &str, dump_skip: usize) -> Self {
+    self.builder.add_thread_local(DumpSystem::new(dir, dump_skip));
+    self
+  }
+
+  pub fn build(self) -> World<'a, 'b> {
+    use specs::prelude::WorldExt;
+    let mut world = specs::prelude::World::new();
+    let mut dispatcher = self.builder.build();
+    dispatcher.setup(&mut world);
+    *world.fetch_mut::<Grid>() = self.grid;
+    World { dispatcher, world }
+  }
+}
+
+pub struct World<'a, 'b> {
+  dispatcher: specs::Dispatcher<'a, 'b>,
+  world: specs::prelude::World,
+}
+
+impl<'a, 'b> World<'a, 'b> {
   pub fn step(&mut self) {
     self.dispatcher.dispatch(&mut self.world);
   }
 
   pub fn set_dt(&mut self, dt: f32) {
     self.world.fetch_mut::<DeltaTime>().set(dt);
-  }
-
-  pub fn set_output_dir(&mut self, output_dir: &str) {
-    self.world.fetch_mut::<OutputDirectory>().set(output_dir.to_string());
-  }
-
-  pub fn set_dump_skip(&mut self, dump_skip: usize) {
-    self.world.fetch_mut::<DumpSkip>().set(dump_skip);
   }
 
   pub fn only_show_random_portion(&mut self, percentage: f32) {
