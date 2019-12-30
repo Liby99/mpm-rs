@@ -16,35 +16,6 @@ pub struct Node {
   pub z: f64,
 }
 
-#[derive(Debug)]
-pub struct Tetrahedron {
-  pub i1: usize,
-  pub i2: usize,
-  pub i3: usize,
-  pub i4: usize,
-}
-
-#[derive(Debug)]
-pub enum ElementType {
-  Tetra,
-}
-
-impl ElementType {
-  pub fn from_u32(n: u32) -> Result<Self, Error> {
-    match n {
-      4 => Ok(Self::Tetra),
-      _ => Err(Error::BadElementType)
-    }
-  }
-
-  pub fn num_nodes_per_element(self) -> Result<u32, Error> {
-    match self {
-      Self::Tetra => Ok(4),
-      // _ => Err(Error::BadElementType)
-    }
-  }
-}
-
 fn check(buf: &Vec<u8>, id: &mut usize, val: u8) -> Result<(), Error> {
   if buf[*id] == val {
     *id += 1;
@@ -109,13 +80,78 @@ fn load_node(buf: &Vec<u8>, start: &mut usize) -> Result<Node, Error> {
   Ok(Node { x, y, z })
 }
 
-#[derive(Debug)]
-pub struct TetMesh {
-  pub nodes: Vec<Node>,
-  pub tetras: Vec<Tetrahedron>,
+pub trait Element : Sized {
+  fn from_buffer(buf: &Vec<u8>, i: &mut usize) -> Result<Self, Error>;
 }
 
-impl TetMesh {
+#[derive(Debug)]
+pub struct Tetrahedron {
+  pub i1: usize,
+  pub i2: usize,
+  pub i3: usize,
+  pub i4: usize,
+}
+
+impl Element for Tetrahedron {
+  fn from_buffer(buffer: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
+    let i1 = (load_u32(&buffer, i)? - 1) as usize;
+    let i2 = (load_u32(&buffer, i)? - 1) as usize;
+    let i3 = (load_u32(&buffer, i)? - 1) as usize;
+    let i4 = (load_u32(&buffer, i)? - 1) as usize;
+    Ok(Self { i1, i2, i3, i4 })
+  }
+}
+
+#[derive(Debug)]
+pub struct Triangle {
+  pub i1: usize,
+  pub i2: usize,
+  pub i3: usize,
+}
+
+impl Element for Triangle {
+  fn from_buffer(buffer: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
+    let i1 = (load_u32(&buffer, i)? - 1) as usize;
+    let i2 = (load_u32(&buffer, i)? - 1) as usize;
+    let i3 = (load_u32(&buffer, i)? - 1) as usize;
+    Ok(Self { i1, i2, i3 })
+  }
+}
+
+#[derive(Debug)]
+pub enum ElementType {
+  Tetra,
+  Tri,
+}
+
+impl ElementType {
+  pub fn from_u32(n: u32) -> Result<Self, Error> {
+    match n {
+      2 => Ok(Self::Tri),
+      4 => Ok(Self::Tetra),
+      _ => Err(Error::BadElementType)
+    }
+  }
+
+  pub fn num_nodes_per_element(self) -> Result<u32, Error> {
+    match self {
+      Self::Tetra => Ok(4),
+      Self::Tri => Ok(3),
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct ElemMesh<E : Element> {
+  pub nodes: Vec<Node>,
+  pub elems: Vec<E>,
+}
+
+pub type TetMesh = ElemMesh<Tetrahedron>;
+
+pub type TriMesh = ElemMesh<Triangle>;
+
+impl<E : Element> ElemMesh<E> {
   pub fn load(filename: &str) -> Result<Self, Error> {
     // Open file
     let mut file = File::open(filename).map_err(|_| Error::CannotReadFile)?;
@@ -176,7 +212,7 @@ impl TetMesh {
 
     // Parse elements
     let mut elem_read = 0;
-    let mut tetras = Vec::new();
+    let mut elems = Vec::new();
     while elem_read < num_elements {
 
       // Element header
@@ -186,7 +222,9 @@ impl TetMesh {
 
       // Get nodes per element
       let nodes_per_element = elem_type.num_nodes_per_element()?;
-      assert_eq!(nodes_per_element, 4);
+      if nodes_per_element != 4 {
+        return Err(Error::BadElementType)
+      }
 
       // Go through the current elements
       for _ in 0..num_elems {
@@ -198,18 +236,14 @@ impl TetMesh {
         }
 
         // Element values
-        let i1 = (load_u32(&buffer, &mut i)? - 1) as usize;
-        let i2 = (load_u32(&buffer, &mut i)? - 1) as usize;
-        let i3 = (load_u32(&buffer, &mut i)? - 1) as usize;
-        let i4 = (load_u32(&buffer, &mut i)? - 1) as usize;
-        let tetra = Tetrahedron { i1, i2, i3, i4 };
-        tetras.push(tetra);
+        let elem = E::from_buffer(&buffer, &mut i)?;
+        elems.push(elem);
       }
 
       // Increment the elem_read
       elem_read += num_elems;
     }
 
-    Ok(Self { nodes, tetras })
+    Ok(Self { nodes, elems })
   }
 }

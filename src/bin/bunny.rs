@@ -55,7 +55,7 @@ fn main() {
 
   // Put the bunny
   let bunny = TetMesh::load(bunny_file).unwrap();
-  for tetra in bunny.tetras {
+  for tetra in bunny.elems {
     let p1 = node_to_vec(&bunny.nodes[tetra.i1]) * bunny_scale + bunny_offset;
     let p2 = node_to_vec(&bunny.nodes[tetra.i2]) * bunny_scale + bunny_offset;
     let p3 = node_to_vec(&bunny.nodes[tetra.i3]) * bunny_scale + bunny_offset;
