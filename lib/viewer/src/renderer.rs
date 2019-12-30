@@ -1,9 +1,8 @@
-use kiss3d::resource::{Effect, ShaderAttribute, ShaderUniform, GPUVec,
-  BufferType, AllocationType};
+use kiss3d::camera::Camera;
 use kiss3d::context::Context;
 use kiss3d::renderer::Renderer;
-use kiss3d::camera::Camera;
-use na::{Point3, Matrix4};
+use kiss3d::resource::{AllocationType, BufferType, Effect, GPUVec, ShaderAttribute, ShaderUniform};
+use na::{Matrix4, Point3};
 
 pub struct PointCloudRenderer {
   shader: Effect,
@@ -12,11 +11,10 @@ pub struct PointCloudRenderer {
   proj: ShaderUniform<Matrix4<f32>>,
   view: ShaderUniform<Matrix4<f32>>,
   colored_points: GPUVec<Point3<f32>>,
-  point_size: f32,
 }
 
 impl PointCloudRenderer {
-  pub fn new(point_size: f32) -> PointCloudRenderer {
+  pub fn new() -> PointCloudRenderer {
     let mut shader = Effect::new_from_str(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
     shader.use_program();
     PointCloudRenderer {
@@ -26,7 +24,6 @@ impl PointCloudRenderer {
       proj: shader.get_uniform::<Matrix4<f32>>("proj").unwrap(),
       view: shader.get_uniform::<Matrix4<f32>>("view").unwrap(),
       shader,
-      point_size,
     }
   }
 
@@ -35,7 +32,7 @@ impl PointCloudRenderer {
       colored_points.clear();
       for p in points {
         colored_points.push(Point3::new(p.x, p.y, p.z));
-        colored_points.push(Point3::new(1.0, 1.0, 1.0)); // White color
+        colored_points.push(Point3::new(1.0, 0.0, 0.0)); // White color
       }
     }
   }
@@ -57,7 +54,7 @@ impl Renderer for PointCloudRenderer {
     self.pos.bind_sub_buffer(&mut self.colored_points, 1, 0);
 
     let ctxt = Context::get();
-    ctxt.point_size(self.point_size);
+    ctxt.point_size(1.0);
     ctxt.draw_arrays(Context::POINTS, 0, (self.colored_points.len() / 2) as i32);
 
     self.pos.disable();
