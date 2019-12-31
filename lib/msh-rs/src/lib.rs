@@ -36,6 +36,48 @@ pub trait Element: Sized {
 }
 
 #[derive(Debug)]
+pub struct Triangle {
+  pub i1: usize,
+  pub i2: usize,
+  pub i3: usize,
+}
+
+impl Element for Triangle {
+  fn from_buffer(buffer: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
+    let i1 = (load_u32(&buffer, i)? - 1) as usize;
+    let i2 = (load_u32(&buffer, i)? - 1) as usize;
+    let i3 = (load_u32(&buffer, i)? - 1) as usize;
+    Ok(Self { i1, i2, i3 })
+  }
+
+  fn num_nodes() -> u32 {
+    3
+  }
+}
+
+#[derive(Debug)]
+pub struct Quad {
+  pub i1: usize,
+  pub i2: usize,
+  pub i3: usize,
+  pub i4: usize,
+}
+
+impl Element for Quad {
+  fn from_buffer(buffer: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
+    let i1 = (load_u32(&buffer, i)? - 1) as usize;
+    let i2 = (load_u32(&buffer, i)? - 1) as usize;
+    let i3 = (load_u32(&buffer, i)? - 1) as usize;
+    let i4 = (load_u32(&buffer, i)? - 1) as usize;
+    Ok(Self { i1, i2, i3, i4 })
+  }
+
+  fn num_nodes() -> u32 {
+    4
+  }
+}
+
+#[derive(Debug)]
 pub struct Tetrahedron {
   pub i1: usize,
   pub i2: usize,
@@ -58,44 +100,69 @@ impl Element for Tetrahedron {
 }
 
 #[derive(Debug)]
-pub struct Triangle {
+pub struct Hexahedra {
   pub i1: usize,
   pub i2: usize,
   pub i3: usize,
+  pub i4: usize,
+  pub i5: usize,
+  pub i6: usize,
+  pub i7: usize,
+  pub i8: usize,
 }
 
-impl Element for Triangle {
+impl Element for Hexahedra {
   fn from_buffer(buffer: &Vec<u8>, i: &mut usize) -> Result<Self, Error> {
     let i1 = (load_u32(&buffer, i)? - 1) as usize;
     let i2 = (load_u32(&buffer, i)? - 1) as usize;
     let i3 = (load_u32(&buffer, i)? - 1) as usize;
-    Ok(Self { i1, i2, i3 })
+    let i4 = (load_u32(&buffer, i)? - 1) as usize;
+    let i5 = (load_u32(&buffer, i)? - 1) as usize;
+    let i6 = (load_u32(&buffer, i)? - 1) as usize;
+    let i7 = (load_u32(&buffer, i)? - 1) as usize;
+    let i8 = (load_u32(&buffer, i)? - 1) as usize;
+    Ok(Self {
+      i1,
+      i2,
+      i3,
+      i4,
+      i5,
+      i6,
+      i7,
+      i8,
+    })
   }
 
   fn num_nodes() -> u32 {
-    3
+    8
   }
 }
 
 #[derive(Debug)]
 pub enum ElementType {
-  Tetra,
   Tri,
+  Quad,
+  Tetra,
+  Hexa,
 }
 
 impl ElementType {
   pub fn from_u32(n: u32) -> Result<Self, Error> {
     match n {
       2 => Ok(Self::Tri),
+      3 => Ok(Self::Quad),
       4 => Ok(Self::Tetra),
+      5 => Ok(Self::Hexa),
       _ => Err(Error::BadElementType),
     }
   }
 
-  pub fn num_nodes_per_element(self) -> Result<u32, Error> {
+  pub fn num_nodes_per_element(self) -> u32 {
     match self {
-      Self::Tetra => Ok(4),
-      Self::Tri => Ok(3),
+      Self::Tri => 3,
+      Self::Quad => 4,
+      Self::Tetra => 4,
+      Self::Hexa => 8,
     }
   }
 }
@@ -109,6 +176,10 @@ pub struct ElemMesh<E: Element> {
 pub type TetrahedronMesh = ElemMesh<Tetrahedron>;
 
 pub type TriangleMesh = ElemMesh<Triangle>;
+
+pub type QuadMesh = ElemMesh<Quad>;
+
+pub type HexahedraMesh = ElemMesh<Hexahedra>;
 
 impl<E: Element> ElemMesh<E> {
   pub fn load(filename: &str) -> Result<Self, Error> {
@@ -174,12 +245,13 @@ impl<E: Element> ElemMesh<E> {
     let mut elems = Vec::new();
     while elem_read < num_elements {
       // Element header
-      let elem_type = ElementType::from_u32(load_u32(&buffer, &mut i)?)?;
+      let elem_type_u32 = load_u32(&buffer, &mut i)?;
+      let elem_type = ElementType::from_u32(elem_type_u32)?;
       let num_elems = load_u32(&buffer, &mut i)?;
       let num_tags = load_u32(&buffer, &mut i)?;
 
       // Get nodes per element
-      let nodes_per_element = elem_type.num_nodes_per_element()?;
+      let nodes_per_element = elem_type.num_nodes_per_element();
       if nodes_per_element != E::num_nodes() {
         return Err(Error::BadElementType);
       }
