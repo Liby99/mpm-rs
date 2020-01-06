@@ -54,7 +54,7 @@ impl Renderer for PointCloudRenderer {
     self.pos.bind_sub_buffer(&mut self.colored_points, 1, 0);
 
     let ctxt = Context::get();
-    ctxt.point_size(1.0); // TODO: this does not affect the point size
+    ctxt.point_size(10.0); // TODO: this does not affect the point size
     ctxt.draw_arrays(Context::POINTS, 0, (self.colored_points.len() / 2) as i32);
 
     self.pos.disable();

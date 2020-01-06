@@ -15,7 +15,7 @@ use kiss3d::renderer::Renderer;
 use kiss3d::window::{State, Window};
 use na::{Point3, Translation3};
 
-use mpm_rs::{components::ParticlePosition, Grid, Vector3f};
+use mpm_rs::{components::{ParticlePosition, Hidden}, Grid, Vector3f};
 
 pub use ending::Ending;
 use renderer::PointCloudRenderer;
@@ -51,7 +51,7 @@ impl WindowSystem {
   pub fn new() -> Self {
     // Get window and ground plane
     let mut window = Window::new("MPM Viewer");
-    let mut cube = window.add_cube(10.0, 0.01, 10.0);
+    let mut cube = window.add_cube(1.0, 0.01, 1.0);
     cube.set_local_translation(Translation3::new(0.0, -0.01, 0.0));
     cube.set_color(0.3, 0.3, 0.3);
 
@@ -66,15 +66,20 @@ impl WindowSystem {
 }
 
 impl<'a> System<'a> for WindowSystem {
-  type SystemData = (Write<'a, Ending>, Read<'a, Grid>, ReadStorage<'a, ParticlePosition>);
+  type SystemData = (
+    Write<'a, Ending>,
+    Read<'a, Grid>,
+    ReadStorage<'a, ParticlePosition>,
+    ReadStorage<'a, Hidden>,
+  );
 
-  fn run(&mut self, (mut ending, grid, poses): Self::SystemData) {
+  fn run(&mut self, (mut ending, grid, poses, hiddens): Self::SystemData) {
     // Store the offset
     let offset = Vector3f::new(-(grid.dim.x as f32), 0.0, -(grid.dim.z as f32)) * grid.h / 2.0;
 
     // First construct points
     let mut points = vec![];
-    for ParticlePosition(pos) in (&poses).join() {
+    for (ParticlePosition(pos), _) in (&poses, !&hiddens).join() {
       let pos = pos + offset;
       points.push(Point3::new(pos.x, pos.y, pos.z));
     }

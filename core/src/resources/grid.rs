@@ -72,9 +72,10 @@ impl Node {
   ///   we do nothing to the velocity
   /// - If the node has type `Boundary::SetZero`, it means that any point touching this node will get
   ///   no velocity
-  /// - If the node has type `Boundary::Surface`, it's velocity along the `normal` will be discarded
+  /// - If the node has type `Boundary::Sliding`, it's velocity along the `normal` will be discarded
   pub fn set_boundary_velocity(&mut self) {
     match self.boundary {
+      Boundary::None => {}
       Boundary::SetZero => {
         self.velocity = Vector3f::zeros();
       }
@@ -85,7 +86,6 @@ impl Node {
         self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
         self.velocity *= factor;
       }
-      _ => {}
     }
   }
 }

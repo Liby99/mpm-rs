@@ -3,12 +3,12 @@ use mpm_viewer::*;
 
 fn main() {
   let dt = 0.001;
-  let world_size = Vector3f::new(1.0, 3.0, 1.0);
+  let world_size = Vector3f::new(1.0, 1.0, 1.0);
   let grid_h = 0.02;
   let youngs_modulus = 140000.0;
   let nu = 0.15;
   let boundary_thickness = 0.04;
-  let ball_center = Vector3f::new(0.5, 2.4, 0.5);
+  let ball_center = Vector3f::new(0.5, 0.7, 0.5);
   let ball_radius = 0.1;
   let ball_velocity = Vector3f::zeros();
   let ball_mass = 10.0;
