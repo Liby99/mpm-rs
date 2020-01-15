@@ -39,6 +39,7 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
     builder.add(GridM2VSystem, "grid_m2v", &["p2g"]);
     builder.add(ApplyGravitySystem, "apply_gravity", &["grid_m2v"]);
     builder.add(ApplyElasticitySystem, "apply_elasticity", &["apply_gravity"]);
+    builder.add(ApplyFrictionSystem, "apply_friction", &["apply_elasticity"]);
     builder.add(GridF2VSystem, "grid_f2v", &["apply_gravity", "apply_elasticity"]);
     builder.add(GridSetBoundarySystem, "grid_set_boundary", &["grid_f2v"]);
     builder.add(EvolveDeformationSystem, "evolve_deformation", &["grid_set_boundary"]);

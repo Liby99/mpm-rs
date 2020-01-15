@@ -15,7 +15,10 @@ use kiss3d::renderer::Renderer;
 use kiss3d::window::{State, Window};
 use na::{Point3, Translation3};
 
-use mpm_rs::{components::{ParticlePosition, Hidden}, Grid, Vector3f};
+use mpm_rs::{
+  components::{Hidden, ParticlePosition},
+  Grid, Vector3f,
+};
 
 pub use ending::Ending;
 use renderer::PointCloudRenderer;

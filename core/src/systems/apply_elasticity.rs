@@ -63,7 +63,7 @@ fn get_rotation(deformation: Matrix3f) -> Matrix3f {
       } else {
         u
       };
-      assert!(u.determinant() >= 0.0);
+      assert!(u.determinant() >= 0.0, "SVD det(U) < 0");
 
       // Invert the related V^T and Sigma component
       let v_t = if v_t.determinant() < 0.0 {
@@ -73,7 +73,7 @@ fn get_rotation(deformation: Matrix3f) -> Matrix3f {
       } else {
         v_t
       };
-      assert!(v_t.determinant() >= 0.0);
+      assert!(v_t.determinant() >= 0.0, "SVD det(V^T) < 0");
 
       // Return U * V^T
       u * v_t
@@ -86,7 +86,7 @@ fn get_rotation(deformation: Matrix3f) -> Matrix3f {
 fn fixed_corotated(deformation: Matrix3f, mu: f32, lambda: f32) -> Matrix3f {
   let r = get_rotation(deformation);
   let j = deformation.determinant(); // J > 0
-  assert!(j >= 0.0);
+  assert!(j >= 0.0); // !!!!!!!!
   let jf_t = dj_df(deformation);
   2.0 * mu * (deformation - r) + lambda * (j - 1.0) * jf_t
 }

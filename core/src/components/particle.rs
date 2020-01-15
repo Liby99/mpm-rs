@@ -59,12 +59,15 @@ impl Component for ParticleVelocity {
 }
 
 pub struct ParticleDeformation {
+  /// F
   pub deformation_gradient: Matrix3f,
   pub mu: f32,
   pub lambda: f32,
 }
 
 impl ParticleDeformation {
+  /// E_0: Initial Young's Modulus
+  /// nu: Poisson Ratio
   pub fn new(youngs_modulus: f32, nu: f32) -> Self {
     Self {
       deformation_gradient: Matrix3f::identity(),
