@@ -150,40 +150,40 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_vel_dim_boundary(&mut self, thickness: f32, factor: f32) {
+  pub fn put_friction_boundary(&mut self, thickness: f32, mu: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;
     let num_nodes = (thickness / grid.h).ceil() as usize;
     for node_index in grid.indices() {
       let boundary = if node_index.x < num_nodes {
-        Boundary::VelocityDiminish {
+        Boundary::Friction {
           normal: Vector3f::new(1.0, 0.0, 0.0),
-          factor,
+          mu,
         }
       } else if node_index.x > dim.x - num_nodes {
-        Boundary::VelocityDiminish {
+        Boundary::Friction {
           normal: Vector3f::new(-1.0, 0.0, 0.0),
-          factor,
+          mu,
         }
       } else if node_index.y < num_nodes {
-        Boundary::VelocityDiminish {
+        Boundary::Friction {
           normal: Vector3f::new(0.0, 1.0, 0.0),
-          factor,
+          mu,
         }
       } else if node_index.y > dim.y - num_nodes {
-        Boundary::VelocityDiminish {
+        Boundary::Friction {
           normal: Vector3f::new(0.0, -1.0, 0.0),
-          factor,
+          mu,
         }
       } else if node_index.z < num_nodes {
-        Boundary::VelocityDiminish {
+        Boundary::Friction {
           normal: Vector3f::new(0.0, 0.0, 1.0),
-          factor,
+          mu,
         }
       } else if node_index.z > dim.z - num_nodes {
-        Boundary::VelocityDiminish {
+        Boundary::Friction {
           normal: Vector3f::new(0.0, 0.0, -1.0),
-          factor,
+          mu,
         }
       } else {
         Boundary::None
@@ -192,7 +192,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32, youngs_modulus: f32, nu: f32) {
+  pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32, youngs_modulus: f32, nu: f32) -> specs::prelude::Entity {
     use specs::prelude::*;
     self
       .world
@@ -202,7 +202,7 @@ impl<'a, 'b> World<'a, 'b> {
       .with(ParticleMass(m))
       .with(ParticleVolume(v))
       .with(ParticleDeformation::new(youngs_modulus, nu))
-      .build();
+      .build()
   }
 
   pub fn put_ball(

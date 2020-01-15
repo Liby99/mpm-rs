@@ -22,7 +22,7 @@ fn main() {
   let youngs_modulus = 150000.0;
   let nu = 0.3;
   let boundary_thickness = 0.04;
-  let boundary_velocity_diminishing = 0.95;
+  let boundary_fric_mu = 1.4;
   let density = 1500.0;
   let particle_mass = 0.005;
   let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
@@ -42,7 +42,7 @@ fn main() {
   world.set_dt(dt);
 
   // Put the boundary
-  world.put_vel_dim_boundary(boundary_thickness, boundary_velocity_diminishing);
+  world.put_friction_boundary(boundary_thickness, boundary_fric_mu);
 
   // Put the bunny
   let bunny = TetrahedronMesh::load(bunny_file).unwrap();

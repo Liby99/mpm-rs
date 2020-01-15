@@ -14,27 +14,11 @@ pub enum Boundary {
     normal: Vector3f,
   },
 
-  /// Remove the velocity component along surface normal
-  /// and multiply the tangential velocity by the factor
-  /// Useful for simulating (non-real) friction
-  VelocityDiminish {
-    normal: Vector3f,
-    factor: f32,
-  },
-
   Friction {
     normal: Vector3f,
     mu: f32,
   },
 }
-
-/// - - - - - - - - - - -
-/// * * * * * * * * * * |
-/// * * * * / \ * * * * |
-/// * * * < - - > * * * |
-/// * * * * \ / * * * * |
-/// * * * * * * * * * * |
-/// * * * * * * * * * * |
 
 /// The Node of the Grid
 ///
@@ -100,11 +84,7 @@ impl Node {
       Boundary::Sliding { normal } => {
         self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
       }
-      Boundary::VelocityDiminish { normal, factor } => {
-        self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
-        self.velocity *= factor;
-      }
-      Boundary::Friction { normal, mu: _ } => {
+      Boundary::Friction { normal, .. } => {
         self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
       }
     }
