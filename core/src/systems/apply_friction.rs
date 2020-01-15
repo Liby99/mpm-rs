@@ -12,7 +12,7 @@ impl<'a> System<'a> for ApplyFrictionSystem {
   fn run(&mut self, (dt, mut grid): Self::SystemData) {
     grid.nodes.par_iter_mut().for_each(|node| match node.boundary {
       Boundary::Friction { normal, mu } => {
-        let normal_force_mag = Vector3f::dot(&normal, &node.force);
+        let normal_force_mag = -f32::min(Vector3f::dot(&normal, &node.force), 0.0);
         let max_force_mag = node.mass * node.velocity.magnitude() / dt.get();
         let fric_force_mag = f32::min(normal_force_mag * mu, max_force_mag);
 
