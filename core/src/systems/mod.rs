@@ -1,6 +1,6 @@
 mod apply_elasticity;
-mod apply_gravity;
 mod apply_friction;
+mod apply_gravity;
 mod clean_grid;
 mod evolve_deformation;
 mod g2p;
@@ -11,8 +11,8 @@ mod p2g;
 mod step_counter;
 
 pub use apply_elasticity::*;
-pub use apply_gravity::*;
 pub use apply_friction::*;
+pub use apply_gravity::*;
 pub use clean_grid::*;
 pub use evolve_deformation::*;
 pub use g2p::*;
