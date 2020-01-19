@@ -7,6 +7,13 @@ pub struct Color {
   pub b: f32,
 }
 
+impl Color {
+  pub fn new(r: f32, g: f32, b: f32) -> Self {
+    Self { r, g, b }
+  }
+}
+
+#[derive(Copy, Clone)]
 pub struct ParticleColor(pub Color);
 
 impl Component for ParticleColor {

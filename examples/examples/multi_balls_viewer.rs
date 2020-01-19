@@ -7,6 +7,7 @@ struct Ball {
   radius: f32,
   mass: f32,
   num_particles: usize,
+  color: Color,
 }
 
 fn main() {
@@ -26,6 +27,7 @@ fn main() {
       radius: 0.1,
       mass: 10.0,
       num_particles: 5000,
+      color: Color::new(1.0, 0.0, 0.0),
     },
     Ball {
       center: Vector3f::new(0.3, 0.2, 0.9),
@@ -33,6 +35,7 @@ fn main() {
       radius: 0.1,
       mass: 10.0,
       num_particles: 5000,
+      color: Color::new(0.0, 1.0, 0.0),
     },
     Ball {
       center: Vector3f::new(0.6, 0.4, 0.3),
@@ -40,6 +43,7 @@ fn main() {
       radius: 0.1,
       mass: 10.0,
       num_particles: 5000,
+      color: Color::new(0.0, 0.0, 1.0),
     },
   ];
 
@@ -61,9 +65,11 @@ fn main() {
     radius,
     mass,
     num_particles,
+    color,
   } in balls
   {
-    world.put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu);
+    world.put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu)
+      .with(ParticleColor(color));
   }
 
   // Check the ending state determined by window system.
