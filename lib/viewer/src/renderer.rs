@@ -4,6 +4,8 @@ use kiss3d::renderer::Renderer;
 use kiss3d::resource::{AllocationType, BufferType, Effect, GPUVec, ShaderAttribute, ShaderUniform};
 use na::{Matrix4, Point3};
 
+use super::color::Color;
+
 pub struct PointCloudRenderer {
   shader: Effect,
   pos: ShaderAttribute<Point3<f32>>,
@@ -27,12 +29,12 @@ impl PointCloudRenderer {
     }
   }
 
-  pub fn set(&mut self, points: &Vec<Point3<f32>>) {
+  pub fn set(&mut self, points: &Vec<Point3<f32>>, colors: &Vec<Color>) {
     if let Some(colored_points) = self.colored_points.data_mut() {
       colored_points.clear();
-      for p in points {
+      for (p, c) in points.iter().zip(colors.iter()) {
         colored_points.push(Point3::new(p.x, p.y, p.z));
-        colored_points.push(Point3::new(1.0, 0.0, 0.0));
+        colored_points.push(Point3::new(c.r, c.g, c.b));
       }
     }
   }

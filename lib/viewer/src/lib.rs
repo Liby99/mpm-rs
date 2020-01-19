@@ -5,6 +5,7 @@ extern crate specs;
 
 mod ending;
 mod renderer;
+mod color;
 
 use specs::prelude::*;
 
@@ -21,7 +22,10 @@ use mpm_rs::{
 };
 
 pub use ending::Ending;
+pub use color::{Color, ParticleColor};
 use renderer::PointCloudRenderer;
+
+static DEFAULT_COLOR : Color = Color { r: 1.0, g: 0.0, b: 0.0 };
 
 type CamFxRdr<'a> = (
   Option<&'a mut dyn Camera>,
@@ -32,6 +36,7 @@ type CamFxRdr<'a> = (
 
 pub struct WindowState {
   pub points: Vec<Point3<f32>>,
+  pub colors: Vec<Color>,
   pub renderer: PointCloudRenderer,
 }
 
@@ -41,7 +46,7 @@ impl State for WindowState {
   }
 
   fn step(&mut self, _: &mut Window) {
-    self.renderer.set(&self.points);
+    self.renderer.set(&self.points, &self.colors);
   }
 }
 
@@ -62,6 +67,7 @@ impl WindowSystem {
     let renderer = PointCloudRenderer::new();
     let state = WindowState {
       points: Vec::new(),
+      colors: Vec::new(),
       renderer,
     };
     Self { window, state }
@@ -70,25 +76,33 @@ impl WindowSystem {
 
 impl<'a> System<'a> for WindowSystem {
   type SystemData = (
+    Entities<'a>,
     Write<'a, Ending>,
     Read<'a, Grid>,
     ReadStorage<'a, ParticlePosition>,
+    ReadStorage<'a, ParticleColor>,
     ReadStorage<'a, Hidden>,
   );
 
-  fn run(&mut self, (mut ending, grid, poses, hiddens): Self::SystemData) {
+  fn run(&mut self, (entities, mut ending, grid, poses, colors, hiddens): Self::SystemData) {
     // Store the offset
     let offset = Vector3f::new(-(grid.dim.x as f32), 0.0, -(grid.dim.z as f32)) * grid.h / 2.0;
 
     // First construct points
-    let mut points = vec![];
-    for (ParticlePosition(pos), _) in (&poses, !&hiddens).join() {
+    let mut ps = vec![];
+    let mut cs = vec![];
+    for (ent, ParticlePosition(pos), _) in (&entities, &poses, !&hiddens).join() {
       let pos = pos + offset;
-      points.push(Point3::new(pos.x, pos.y, pos.z));
+      ps.push(Point3::new(pos.x, pos.y, pos.z));
+      cs.push(match colors.get(ent) {
+        Some(ParticleColor(c)) => c.clone(),
+        _ => DEFAULT_COLOR,
+      })
     }
 
     // Then update points
-    self.state.points = points;
+    self.state.points = ps;
+    self.state.colors = cs;
 
     // Finally render the window
     if !self.window.render_with_state(&mut self.state) {
