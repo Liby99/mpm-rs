@@ -84,11 +84,8 @@ impl Node {
       Boundary::SetZero => {
         self.velocity = Vector3f::zeros();
       }
-      Boundary::Sliding { normal } => {
-        self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
-      }
-      Boundary::Friction { normal, .. } => {
-        self.velocity -= Vector3f::dot(&self.velocity, &normal) * normal;
+      Boundary::Sliding { normal } | Boundary::Friction { normal, .. } => {
+        self.velocity -= f32::min(Vector3f::dot(&self.velocity, &normal), 0.0) * normal;
       }
     }
   }
