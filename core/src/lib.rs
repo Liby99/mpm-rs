@@ -63,20 +63,53 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
   }
 }
 
+pub struct ParticlesHandle {
+  world: *mut specs::prelude::World,
+  entities: Vec<specs::prelude::Entity>,
+}
+
+impl ParticlesHandle {
+  pub fn with<T: specs::prelude::Component + Clone>(self, c: T) -> Self {
+    use specs::prelude::*;
+    for &ent in &self.entities {
+      unsafe {
+        let mut storage: WriteStorage<T> = SystemData::fetch(&(*self.world));
+        storage.insert(ent, c.clone()).unwrap();
+      }
+    }
+    self
+  }
+
+  pub fn each<F>(self, f: F) -> Self
+  where
+    F: Fn(&specs::prelude::Entity, &mut specs::prelude::World),
+  {
+    for ent in &self.entities {
+      unsafe {
+        f(ent, &mut *self.world);
+      }
+    }
+    self
+  }
+}
+
 pub struct World<'a, 'b> {
   pub world: specs::prelude::World,
   dispatcher: specs::Dispatcher<'a, 'b>,
 }
 
 impl<'a, 'b> World<'a, 'b> {
+  /// Step the world once
   pub fn step(&mut self) {
     self.dispatcher.dispatch(&mut self.world);
   }
 
+  /// Set the dt of the world
   pub fn set_dt(&mut self, dt: f32) {
     self.world.fetch_mut::<DeltaTime>().set(dt);
   }
 
+  /// Add `Hidden` marker to a random portion of all the present particles
   pub fn only_show_random_portion(&mut self, percentage: f32) {
     use specs::prelude::*;
     let (entities, poses, mut hiddens): (Entities, ReadStorage<ParticlePosition>, WriteStorage<Hidden>) =
@@ -90,9 +123,10 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Get the number of particles in this world
   pub fn num_particles(&self) -> usize {
     use specs::prelude::*;
-    let poses : ReadStorage<ParticlePosition> = self.world.system_data();
+    let poses: ReadStorage<ParticlePosition> = self.world.system_data();
     let mut num = 0;
     for _ in (&poses).join() {
       num += 1;
@@ -100,6 +134,7 @@ impl<'a, 'b> World<'a, 'b> {
     num
   }
 
+  /// Put the `SetZero` boundary type to the boundary of the world within a given thickness
   pub fn put_boundary(&mut self, thickness: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;
@@ -124,6 +159,8 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Put the `Sliding` boundary type to the boundary of the world within a given thickness.
+  /// The normal of the boundary will be automatically the normal of the box pointing inward.
   pub fn put_sliding_boundary(&mut self, thickness: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;
@@ -160,6 +197,9 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Put the `Friction` boundary type to the boundary of the world within a given thickness.
+  /// The normal of the boundary will be automatically the normal of the box pointing inward.
+  /// The friction constant is given by the argument `mu`.
   pub fn put_friction_boundary(&mut self, thickness: f32, mu: f32) {
     let mut grid = self.world.fetch_mut::<Grid>();
     let dim = grid.dim;
@@ -202,9 +242,17 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_particle(&mut self, pos: Vector3f, vel: Vector3f, m: f32, v: f32, youngs_modulus: f32, nu: f32) -> specs::prelude::Entity {
+  pub fn put_particle(
+    &mut self,
+    pos: Vector3f,
+    vel: Vector3f,
+    m: f32,
+    v: f32,
+    youngs_modulus: f32,
+    nu: f32,
+  ) -> ParticlesHandle {
     use specs::prelude::*;
-    self
+    let ent = self
       .world
       .create_entity()
       .with(ParticlePosition(pos))
@@ -212,7 +260,11 @@ impl<'a, 'b> World<'a, 'b> {
       .with(ParticleMass(m))
       .with(ParticleVolume(v))
       .with(ParticleDeformation::new(youngs_modulus, nu))
-      .build()
+      .build();
+    ParticlesHandle {
+      world: &mut self.world,
+      entities: vec![ent],
+    }
   }
 
   pub fn put_ball(
@@ -224,16 +276,24 @@ impl<'a, 'b> World<'a, 'b> {
     n: usize,
     youngs_modulus: f32,
     nu: f32,
-  ) {
+  ) -> ParticlesHandle {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
     let ind_volume = total_volume / (n as f32);
 
     // Then add n particles
+    let mut entities = vec![];
     for _ in 0..n {
       let pos = random_point_in_sphere(center, radius);
-      self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
+      let hdl = self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
+      entities.push(hdl.entities[0]);
+    }
+
+    // Return the handle
+    ParticlesHandle {
+      world: &mut self.world,
+      entities,
     }
   }
 
@@ -246,7 +306,7 @@ impl<'a, 'b> World<'a, 'b> {
     n: usize,
     youngs_modulus: f32,
     nu: f32,
-  ) {
+  ) -> ParticlesHandle {
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;
@@ -254,9 +314,17 @@ impl<'a, 'b> World<'a, 'b> {
     let ind_volume = total_volume / (n as f32);
 
     // Then add n particles
+    let mut entities = vec![];
     for _ in 0..n {
       let pos = random_point_in_cube(min, max);
-      self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
+      let hdl = self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
+      entities.push(hdl.entities[0]);
+    }
+
+    // Return the handle
+    ParticlesHandle {
+      world: &mut self.world,
+      entities,
     }
   }
 }

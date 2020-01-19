@@ -40,7 +40,7 @@ fn main() {
       radius: 0.1,
       mass: 10.0,
       num_particles: 5000,
-    }
+    },
   ];
 
   // Initialize the world, use WindowSystem to visualize
@@ -55,7 +55,14 @@ fn main() {
   world.put_friction_boundary(boundary_thickness, boundary_fric_mu);
 
   // Put the balls
-  for Ball { center, velocity, radius, mass, num_particles } in balls {
+  for Ball {
+    center,
+    velocity,
+    radius,
+    mass,
+    num_particles,
+  } in balls
+  {
     world.put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu);
   }
 
