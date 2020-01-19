@@ -132,7 +132,13 @@ impl Iterator for WeightIterator {
         let dwijk_dx = self.dwx[i] * wj * wk / self.h;
         let dwijk_dy = wi * self.dwy[j] * wk / self.h;
         let dwijk_dz = wi * wj * self.dwz[k] / self.h;
-        assert!(!dwijk_dx.is_nan() && !dwijk_dy.is_nan() && !dwijk_dz.is_nan(), "NaN in Node({}, {}, {})", self.curr_node.x, self.curr_node.y, self.curr_node.z);
+        assert!(
+          !dwijk_dx.is_nan() && !dwijk_dy.is_nan() && !dwijk_dz.is_nan(),
+          "NaN in Node({}, {}, {})",
+          self.curr_node.x,
+          self.curr_node.y,
+          self.curr_node.z
+        );
         let grad_w = Vector3f::new(dwijk_dx, dwijk_dy, dwijk_dz);
 
         // Compute the `curr_node` for next step

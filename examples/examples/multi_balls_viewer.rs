@@ -68,7 +68,8 @@ fn main() {
     color,
   } in balls
   {
-    world.put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu)
+    world
+      .put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu)
       .with(ParticleColor(color));
   }
 

@@ -3,9 +3,9 @@ extern crate mpm_rs;
 extern crate nalgebra as na;
 extern crate specs;
 
+mod color;
 mod ending;
 mod renderer;
-mod color;
 
 use specs::prelude::*;
 
@@ -21,11 +21,11 @@ use mpm_rs::{
   Grid, Vector3f,
 };
 
-pub use ending::Ending;
 pub use color::{Color, ParticleColor};
+pub use ending::Ending;
 use renderer::PointCloudRenderer;
 
-static DEFAULT_COLOR : Color = Color { r: 1.0, g: 0.0, b: 0.0 };
+static DEFAULT_COLOR: Color = Color { r: 1.0, g: 0.0, b: 0.0 };
 
 type CamFxRdr<'a> = (
   Option<&'a mut dyn Camera>,
