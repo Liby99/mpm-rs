@@ -27,7 +27,7 @@ fn main() {
   let rotation = na::UnitQuaternion::identity();
   let scale = 3.5;
   let transf = na::Similarity3::from_parts(translation, rotation, scale);
-  let output_random_portion = 0.1;
+  let hide_random_portion = 0.9;
 
   // Create output directory
   std::fs::create_dir_all(outdir).unwrap();
@@ -51,7 +51,7 @@ fn main() {
     .with(ParticleDeformation::new(youngs_modulus, nu));
 
   // Make the world only show a portion
-  world.only_show_random_portion(output_random_portion);
+  world.hide_random_portion(hide_random_portion);
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

@@ -2,6 +2,13 @@ use mpm_ply_dump::*;
 use mpm_rs::*;
 use pbr::ProgressBar;
 
+struct Ball {
+  center: Vector3f,
+  radius: f32,
+  mass: f32,
+  num_particles: usize,
+}
+
 fn main() {
   let outdir = "result/mickey_mouse";
   let cycles = 1500;
@@ -12,6 +19,30 @@ fn main() {
   let nu = 0.2;
   let dump_skip = 5;
   let boundary_thickness = 0.04;
+
+  let balls = vec![
+    // Head
+    Ball {
+      center: Vector3f::new(0.5, 0.4, 0.5),
+      radius: 0.1,
+      mass: 10.0,
+      num_particles: 10000
+    },
+    // Left ear
+    Ball {
+      center: Vector3f::new(0.58, 0.6, 0.58),
+      radius: 0.05,
+      mass: 1.25,
+      num_particles: 1250
+    },
+    // Right ear
+    Ball {
+      center: Vector3f::new(0.58, 0.6, 0.58),
+      radius: 0.05,
+      mass: 1.25,
+      num_particles: 1250
+    },
+  ];
 
   // Create output directory
   std::fs::create_dir_all(outdir).unwrap();
@@ -27,20 +58,12 @@ fn main() {
   // Put the particles
   world.put_sliding_boundary(boundary_thickness);
 
-  // The big ball of mickey mouse
-  world
-    .put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, 10.0, 10000)
-    .with(ParticleDeformation::new(youngs_modulus, nu));
-
-  // Left ear
-  world
-    .put_ball(Vector3f::new(0.58, 0.6, 0.58), 0.05, 1.25, 1250)
-    .with(ParticleDeformation::new(youngs_modulus, nu));
-
-  // Right ear
-  world
-    .put_ball(Vector3f::new(0.42, 0.6, 0.42), 0.05, 1.25, 1250)
-    .with(ParticleDeformation::new(youngs_modulus, nu));
+  // Put the balls
+  for b in balls {
+    world
+      .put_ball(b.center, b.radius, b.mass, b.num_particles)
+      .with(ParticleDeformation::new(youngs_modulus, nu));
+  }
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

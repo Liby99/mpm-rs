@@ -25,7 +25,6 @@ fn main() {
   let nu = 0.15;
   let boundary_thickness = 0.04;
   let boundary_fric_mu = 1.4;
-  let output_random_portion = 0.1;
 
   // Create output directory
   std::fs::create_dir_all(outdir).unwrap();
@@ -73,9 +72,6 @@ fn main() {
       .with(ParticleVelocity(b.velocity))
       .with(ParticleDeformation::new(youngs_modulus, nu));
   }
-
-  // Make the world only show a portion
-  world.only_show_random_portion(output_random_portion);
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

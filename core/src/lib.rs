@@ -86,6 +86,21 @@ impl<'a, 'b> ParticlesHandle<'a, 'b> {
     self
   }
 
+  pub fn hide_random_portion(self, percentage: f32) -> Self {
+    for &ent in &self.entities {
+      if random() > percentage {
+        unsafe {
+          (*self.world).remove::<Hidden>(ent);
+        }
+      } else {
+        unsafe {
+          (*self.world).insert(ent, Hidden)
+        }
+      }
+    }
+    self
+  }
+
   pub fn each<F>(self, f: F) -> Self
   where
     F: Fn(&Particle, &mut World<'a, 'b>),
@@ -116,12 +131,12 @@ impl<'a, 'b> World<'a, 'b> {
   }
 
   /// Add `Hidden` marker to a random portion of all the present particles
-  pub fn only_show_random_portion(&mut self, percentage: f32) {
+  pub fn hide_random_portion(&mut self, percentage: f32) {
     use specs::prelude::*;
-    let (entities, poses, mut hiddens): (Entities, ReadStorage<ParticlePosition>, WriteStorage<Hidden>) =
-      self.world.system_data();
+    let (entities, poses): (Entities, ReadStorage<ParticlePosition>) = self.world.system_data();
+    let mut hiddens: WriteStorage<Hidden> = self.world.system_data();
     for (entity, _) in (&entities, &poses).join() {
-      if random() < percentage {
+      if random() > percentage {
         hiddens.remove(entity);
       } else {
         hiddens.insert(entity, Hidden).unwrap();
@@ -152,6 +167,13 @@ impl<'a, 'b> World<'a, 'b> {
     use specs::prelude::*;
     let mut store: WriteStorage<T> = self.world.system_data();
     store.insert(p, c).unwrap();
+  }
+
+  /// Remove a component of a given particle
+  pub fn remove<T: specs::prelude::Component>(&mut self, p: Particle) {
+    use specs::prelude::*;
+    let mut store: WriteStorage<T> = self.world.system_data();
+    store.remove(p);
   }
 
   /// Put the `SetZero` boundary type to the boundary of the world within a given thickness
