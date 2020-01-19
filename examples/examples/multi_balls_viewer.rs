@@ -69,7 +69,7 @@ fn main() {
 
   // Check the ending state determined by window system.
   // continue if not ended
-  while !world.world.fetch::<Ending>().is_ended() {
+  while world.not_ending() {
     world.step();
   }
 }

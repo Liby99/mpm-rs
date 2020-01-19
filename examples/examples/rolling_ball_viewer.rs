@@ -38,16 +38,14 @@ fn main() {
     .each(|&par, world| {
       let pos = world.get::<ParticlePosition>(par).unwrap().get();
       let (xp, yp, zp) = (pos.x >= center.x, pos.y >= center.y, pos.z >= center.z);
-      if (xp && yp && zp) || (xp && !yp && !zp) || (!xp && yp && !zp) || (!xp && !yp && zp) {
-        world.insert(par, ParticleColor(color_1));
-      } else {
-        world.insert(par, ParticleColor(color_2));
-      }
+      let use_1 = (xp && yp && zp) || (xp && !yp && !zp) || (!xp && yp && !zp) || (!xp && !yp && zp);
+      let color = if use_1 { color_1 } else { color_2 };
+      world.insert(par, ParticleColor(color));
     });
 
   // Check the ending state determined by window system.
   // continue if not ended
-  while !world.world.fetch::<Ending>().is_ended() {
+  while world.not_ending() {
     world.step();
   }
 }

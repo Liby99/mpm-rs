@@ -18,7 +18,7 @@ use na::{Point3, Translation3};
 
 use mpm_rs::{
   components::{Hidden, ParticlePosition},
-  Grid, Vector3f,
+  Grid, Vector3f, World,
 };
 
 pub use color::{Color, ParticleColor};
@@ -108,5 +108,19 @@ impl<'a> System<'a> for WindowSystem {
     if !self.window.render_with_state(&mut self.state) {
       ending.set_ended();
     }
+  }
+}
+
+pub trait EndingState {
+  fn is_ending(&self) -> bool;
+
+  fn not_ending(&self) -> bool {
+    !self.is_ending()
+  }
+}
+
+impl<'a, 'b> EndingState for World<'a, 'b> {
+  fn is_ending(&self) -> bool {
+    self.world.fetch::<Ending>().is_ended()
   }
 }
