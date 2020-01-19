@@ -15,10 +15,15 @@ pub use systems::*;
 pub use utils::*;
 
 use msh_rs::TetrahedronMesh;
+use specs::prelude::DispatcherBuilder;
+
+type SpecsWorld = specs::prelude::World;
+
+pub type Particle = specs::prelude::Entity;
 
 pub struct WorldBuilder<'a, 'b> {
   grid: Grid,
-  builder: specs::prelude::DispatcherBuilder<'a, 'b>,
+  builder: DispatcherBuilder<'a, 'b>,
 }
 
 impl<'a, 'b> WorldBuilder<'a, 'b> {
@@ -66,17 +71,17 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
   }
 }
 
-pub struct ParticlesHandle {
-  world: *mut specs::prelude::World,
-  entities: Vec<specs::prelude::Entity>,
+pub struct ParticlesHandle<'a, 'b> {
+  world: *mut World<'a, 'b>,
+  entities: Vec<Particle>,
 }
 
-impl ParticlesHandle {
+impl<'a, 'b> ParticlesHandle<'a, 'b> {
   pub fn with<T: specs::prelude::Component + Clone>(self, c: T) -> Self {
     use specs::prelude::*;
     for &ent in &self.entities {
       unsafe {
-        let mut storage: WriteStorage<T> = SystemData::fetch(&(*self.world));
+        let mut storage: WriteStorage<T> = SystemData::fetch(&(*self.world).world);
         storage.insert(ent, c.clone()).unwrap();
       }
     }
@@ -85,11 +90,11 @@ impl ParticlesHandle {
 
   pub fn each<F>(self, f: F) -> Self
   where
-    F: Fn(&specs::prelude::Entity, &mut specs::prelude::World),
+    F: Fn(&Particle, &mut World<'a, 'b>),
   {
     for ent in &self.entities {
       unsafe {
-        f(ent, &mut *self.world);
+        f(ent, &mut (*self.world));
       }
     }
     self
@@ -97,7 +102,7 @@ impl ParticlesHandle {
 }
 
 pub struct World<'a, 'b> {
-  pub world: specs::prelude::World,
+  pub world: SpecsWorld,
   dispatcher: specs::Dispatcher<'a, 'b>,
 }
 
@@ -135,6 +140,21 @@ impl<'a, 'b> World<'a, 'b> {
       num += 1;
     }
     num
+  }
+
+  /// Get the position of the given particle
+  pub fn position(&self, p: Particle) -> Vector3f {
+    use specs::prelude::*;
+    let poses: ReadStorage<ParticlePosition> = self.world.system_data();
+    let ParticlePosition(pos) = poses.get(p).unwrap();
+    pos.clone()
+  }
+
+  /// Insert (will override if already presented) a component to a given particle
+  pub fn insert<T: specs::prelude::Component>(&mut self, p: Particle, c: T) {
+    use specs::prelude::*;
+    let mut store: WriteStorage<T> = self.world.system_data();
+    store.insert(p, c).unwrap();
   }
 
   /// Put the `SetZero` boundary type to the boundary of the world within a given thickness
@@ -245,7 +265,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_particle(&mut self, pos: Vector3f, mass: f32) -> ParticlesHandle {
+  pub fn put_particle(&mut self, pos: Vector3f, mass: f32) -> ParticlesHandle<'a, 'b> {
     use specs::prelude::*;
     let ent = self
       .world
@@ -255,12 +275,12 @@ impl<'a, 'b> World<'a, 'b> {
       .with(ParticleMass(mass))
       .build();
     ParticlesHandle {
-      world: &mut self.world,
+      world: self,
       entities: vec![ent],
     }
   }
 
-  pub fn put_ball(&mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle {
+  pub fn put_ball(&mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
@@ -276,12 +296,12 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Return the handle
     ParticlesHandle {
-      world: &mut self.world,
+      world: self,
       entities,
     }
   }
 
-  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle {
+  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;
@@ -298,12 +318,12 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Return the handle
     ParticlesHandle {
-      world: &mut self.world,
+      world: self,
       entities,
     }
   }
 
-  pub fn put_tetra_mesh(&mut self, mesh: &TetrahedronMesh, transf: Transform3f, density: f32, par_mass: f32) -> ParticlesHandle {
+  pub fn put_tetra_mesh(&mut self, mesh: &TetrahedronMesh, transf: Transform3f, density: f32, par_mass: f32) -> ParticlesHandle<'a, 'b> {
     // All the added entities
     let mut entities = vec![];
 
@@ -331,7 +351,7 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Return the handle
     ParticlesHandle {
-      world: &mut self.world,
+      world: self,
       entities,
     }
   }
