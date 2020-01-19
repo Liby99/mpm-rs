@@ -18,16 +18,16 @@ fn main() {
   // Create a boundary to the world with a thickness of 0.06
   world.put_boundary(0.06);
 
-  // Create a ball
-  world.put_ball(
-    Vector3f::new(0.5, 0.4, 0.5), // center of the ball
-    0.1, // radius of the ball
-    Vector3f::zeros(), // initial velocity of the ball
-    10.0, // mass of the ball
-    10000, // number of particles inside this ball
-    10000.0, // young's modulus
-    0.2, // nu
-  );
+  // Create a ball in the world
+  let center = Vector3f::new(0.5, 0.4, 0.5);
+  let radius = 0.1;
+  let mass = 10.0;
+  let num_particles = 10000;
+  let youngs_modulus = 10000.0;
+  let nu = 0.2;
+  world
+    .put_ball(center, radius, mass, num_particles)
+    .with(ParticleDeformation::new(youngs_modulus, nu));
 
   // Run 500 steps
   for _ in 0..500 {
