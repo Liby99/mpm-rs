@@ -233,6 +233,11 @@ impl Grid {
     Self { h, dim, nodes }
   }
 
+  /// Get the overall size of this grid
+  pub fn size(&self) -> Vector3f {
+    Vector3f::new(self.dim.x as f32, self.dim.y as f32, self.dim.z as f32) * self.h
+  }
+
   /// Get the raw index inside the `nodes` array from `Vector3i`
   fn raw_index(&self, node_index: Vector3u) -> usize {
     let z_comp = self.dim.x * self.dim.y * node_index.z;

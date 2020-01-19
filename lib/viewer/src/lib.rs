@@ -14,6 +14,7 @@ use kiss3d::planar_camera::PlanarCamera;
 use kiss3d::post_processing::PostProcessingEffect;
 use kiss3d::renderer::Renderer;
 use kiss3d::window::{State, Window};
+use kiss3d::scene::SceneNode;
 use na::{Point3, Translation3};
 
 use mpm_rs::{
@@ -37,6 +38,7 @@ type CamFxRdr<'a> = (
 pub struct WindowState {
   pub points: Vec<Point3<f32>>,
   pub colors: Vec<Color>,
+  pub floor: SceneNode,
   pub renderer: PointCloudRenderer,
 }
 
@@ -68,6 +70,7 @@ impl WindowSystem {
     let state = WindowState {
       points: Vec::new(),
       colors: Vec::new(),
+      floor: cube,
       renderer,
     };
     Self { window, state }
@@ -85,8 +88,13 @@ impl<'a> System<'a> for WindowSystem {
   );
 
   fn run(&mut self, (entities, mut ending, grid, poses, colors, hiddens): Self::SystemData) {
+    let size = grid.size();
+
+    // Change the size of the floor
+    self.state.floor.set_local_scale(size.x, 0.01, size.z);
+
     // Store the offset
-    let offset = Vector3f::new(-(grid.dim.x as f32), 0.0, -(grid.dim.z as f32)) * grid.h / 2.0;
+    let offset = Vector3f::new(-size.x / 2.0, 0.0, -size.z / 2.0);
 
     // First construct points
     let mut ps = vec![];
