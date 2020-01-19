@@ -59,18 +59,12 @@ fn main() {
   world.put_friction_boundary(boundary_thickness, boundary_fric_mu);
 
   // Put the balls
-  for Ball {
-    center,
-    velocity,
-    radius,
-    mass,
-    num_particles,
-    color,
-  } in balls
-  {
+  for b in balls {
     world
-      .put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu)
-      .with(ParticleColor(color));
+      .put_ball(b.center, b.radius, b.mass, b.num_particles)
+      .with(ParticleVelocity(b.velocity))
+      .with(ParticleDeformation::new(youngs_modulus, nu))
+      .with(ParticleColor(b.color));
   }
 
   // Check the ending state determined by window system.

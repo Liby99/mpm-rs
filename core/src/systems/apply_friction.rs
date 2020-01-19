@@ -17,7 +17,7 @@ impl<'a> System<'a> for ApplyFrictionSystem {
         let norm_vel = Vector3f::dot(&normal, &node.velocity_temp) * normal;
         let tan_vel = node.velocity_temp - norm_vel;
 
-        // Make sure that we have velocity in tangent vector direction
+        // Make sure that we have velocity in tangent velocity direction
         if tan_vel.magnitude() > THRESHOLD {
           // Calculate friction force magnitude
           let normal_force_mag = -f32::min(Vector3f::dot(&normal, &node.force), 0.0);

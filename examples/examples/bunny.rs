@@ -1,5 +1,5 @@
 use mpm_ply_dump::PlyDumpSystem;
-use mpm_rs::{random_point_in_tetra, Vector3f, WorldBuilder};
+use mpm_rs::*;
 use msh_rs::{Node, TetrahedronMesh};
 use pbr::ProgressBar;
 use std::time::SystemTime;
@@ -60,7 +60,11 @@ fn main() {
     let par_volume = volume / num_pars;
     for _ in 0..num_pars as usize {
       let pos = random_point_in_tetra(p1, p2, p3, p4);
-      world.put_particle(pos, bunny_velocity, particle_mass, par_volume, youngs_modulus, nu);
+      world
+        .put_particle(pos, particle_mass)
+        .with(ParticleVolume(par_volume))
+        .with(ParticleVelocity(bunny_velocity))
+        .with(ParticleDeformation::new(youngs_modulus, nu));
     }
   }
 

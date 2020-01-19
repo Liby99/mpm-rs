@@ -242,24 +242,14 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_particle(
-    &mut self,
-    pos: Vector3f,
-    vel: Vector3f,
-    m: f32,
-    v: f32,
-    youngs_modulus: f32,
-    nu: f32,
-  ) -> ParticlesHandle {
+  pub fn put_particle(&mut self, pos: Vector3f, mass: f32) -> ParticlesHandle {
     use specs::prelude::*;
     let ent = self
       .world
       .create_entity()
       .with(ParticlePosition(pos))
-      .with(ParticleVelocity(vel))
-      .with(ParticleMass(m))
-      .with(ParticleVolume(v))
-      .with(ParticleDeformation::new(youngs_modulus, nu))
+      .with(ParticleVelocity(Vector3f::zeros()))
+      .with(ParticleMass(mass))
       .build();
     ParticlesHandle {
       world: &mut self.world,
@@ -267,16 +257,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_ball(
-    &mut self,
-    center: Vector3f,
-    radius: f32,
-    vel: Vector3f,
-    mass: f32,
-    n: usize,
-    youngs_modulus: f32,
-    nu: f32,
-  ) -> ParticlesHandle {
+  pub fn put_ball(&mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
@@ -286,7 +267,7 @@ impl<'a, 'b> World<'a, 'b> {
     let mut entities = vec![];
     for _ in 0..n {
       let pos = random_point_in_sphere(center, radius);
-      let hdl = self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
+      let hdl = self.put_particle(pos, ind_mass).with(ParticleVolume(ind_volume));
       entities.push(hdl.entities[0]);
     }
 
@@ -297,16 +278,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  pub fn put_cube(
-    &mut self,
-    min: Vector3f,
-    max: Vector3f,
-    vel: Vector3f,
-    mass: f32,
-    n: usize,
-    youngs_modulus: f32,
-    nu: f32,
-  ) -> ParticlesHandle {
+  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle {
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;
@@ -317,7 +289,7 @@ impl<'a, 'b> World<'a, 'b> {
     let mut entities = vec![];
     for _ in 0..n {
       let pos = random_point_in_cube(min, max);
-      let hdl = self.put_particle(pos, vel, ind_mass, ind_volume, youngs_modulus, nu);
+      let hdl = self.put_particle(pos, ind_mass).with(ParticleVolume(ind_volume));
       entities.push(hdl.entities[0]);
     }
 

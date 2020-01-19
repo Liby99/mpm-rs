@@ -2,6 +2,7 @@ use specs::prelude::*;
 
 use crate::utils::*;
 
+#[derive(Copy, Clone)]
 pub struct ParticleMass(pub f32);
 
 impl ParticleMass {
@@ -14,6 +15,7 @@ impl Component for ParticleMass {
   type Storage = VecStorage<Self>;
 }
 
+#[derive(Copy, Clone)]
 pub struct ParticleVolume(pub f32);
 
 impl ParticleVolume {
@@ -26,6 +28,7 @@ impl Component for ParticleVolume {
   type Storage = VecStorage<Self>;
 }
 
+#[derive(Copy, Clone)]
 pub struct ParticlePosition(pub Vector3f);
 
 impl ParticlePosition {
@@ -42,6 +45,7 @@ impl Component for ParticlePosition {
   type Storage = VecStorage<Self>;
 }
 
+#[derive(Copy, Clone)]
 pub struct ParticleVelocity(pub Vector3f);
 
 impl ParticleVelocity {
@@ -58,6 +62,7 @@ impl Component for ParticleVelocity {
   type Storage = VecStorage<Self>;
 }
 
+#[derive(Copy, Clone)]
 pub struct ParticleDeformation {
   /// F
   pub deformation_gradient: Matrix3f,

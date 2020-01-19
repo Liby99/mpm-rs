@@ -28,37 +28,19 @@ fn main() {
   world.put_sliding_boundary(boundary_thickness);
 
   // The big ball of mickey mouse
-  world.put_ball(
-    Vector3f::new(0.5, 0.4, 0.5),
-    0.1,
-    Vector3f::zeros(),
-    10.0,
-    10000,
-    youngs_modulus,
-    nu,
-  );
+  world
+    .put_ball(Vector3f::new(0.5, 0.4, 0.5), 0.1, 10.0, 10000)
+    .with(ParticleDeformation::new(youngs_modulus, nu));
 
   // Left ear
-  world.put_ball(
-    Vector3f::new(0.58, 0.6, 0.58),
-    0.05,
-    Vector3f::zeros(),
-    1.25,
-    1250,
-    youngs_modulus,
-    nu,
-  );
+  world
+    .put_ball(Vector3f::new(0.58, 0.6, 0.58), 0.05, 1.25, 1250)
+    .with(ParticleDeformation::new(youngs_modulus, nu));
 
   // Right ear
-  world.put_ball(
-    Vector3f::new(0.42, 0.6, 0.42),
-    0.05,
-    Vector3f::zeros(),
-    1.25,
-    1250,
-    youngs_modulus,
-    nu,
-  );
+  world
+    .put_ball(Vector3f::new(0.42, 0.6, 0.42), 0.05, 1.25, 1250)
+    .with(ParticleDeformation::new(youngs_modulus, nu));
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);
