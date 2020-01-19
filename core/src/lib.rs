@@ -1,8 +1,8 @@
+extern crate msh_rs;
 extern crate nalgebra as na;
 extern crate rand;
 extern crate rayon;
 extern crate specs;
-extern crate msh_rs;
 
 pub mod components;
 pub mod resources;
@@ -78,11 +78,9 @@ pub struct ParticlesHandle<'a, 'b> {
 
 impl<'a, 'b> ParticlesHandle<'a, 'b> {
   pub fn with<T: specs::prelude::Component + Clone>(self, c: T) -> Self {
-    use specs::prelude::*;
     for &ent in &self.entities {
       unsafe {
-        let mut storage: WriteStorage<T> = SystemData::fetch(&(*self.world).world);
-        storage.insert(ent, c.clone()).unwrap();
+        (*self.world).insert(ent, c.clone());
       }
     }
     self
@@ -142,12 +140,11 @@ impl<'a, 'b> World<'a, 'b> {
     num
   }
 
-  /// Get the position of the given particle
-  pub fn position(&self, p: Particle) -> Vector3f {
+  /// Get the component of the given particle with the given type
+  pub fn get<T: specs::prelude::Component + Clone>(&self, p: Particle) -> Option<T> {
     use specs::prelude::*;
-    let poses: ReadStorage<ParticlePosition> = self.world.system_data();
-    let ParticlePosition(pos) = poses.get(p).unwrap();
-    pos.clone()
+    let store: ReadStorage<T> = self.world.system_data();
+    store.get(p).map(T::clone)
   }
 
   /// Insert (will override if already presented) a component to a given particle
@@ -295,10 +292,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle {
-      world: self,
-      entities,
-    }
+    ParticlesHandle { world: self, entities }
   }
 
   pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
@@ -317,13 +311,16 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle {
-      world: self,
-      entities,
-    }
+    ParticlesHandle { world: self, entities }
   }
 
-  pub fn put_tetra_mesh(&mut self, mesh: &TetrahedronMesh, transf: Transform3f, density: f32, par_mass: f32) -> ParticlesHandle<'a, 'b> {
+  pub fn put_tetra_mesh(
+    &mut self,
+    mesh: &TetrahedronMesh,
+    transf: Transform3f,
+    density: f32,
+    par_mass: f32,
+  ) -> ParticlesHandle<'a, 'b> {
     // All the added entities
     let mut entities = vec![];
 
@@ -342,17 +339,12 @@ impl<'a, 'b> World<'a, 'b> {
       let par_volume = volume / num_pars;
       for _ in 0..num_pars as usize {
         let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
-        let hdl = self
-          .put_particle(pos, par_mass)
-          .with(ParticleVolume(par_volume));
+        let hdl = self.put_particle(pos, par_mass).with(ParticleVolume(par_volume));
         entities.push(hdl.entities[0]);
       }
     }
 
     // Return the handle
-    ParticlesHandle {
-      world: self,
-      entities,
-    }
+    ParticlesHandle { world: self, entities }
   }
 }

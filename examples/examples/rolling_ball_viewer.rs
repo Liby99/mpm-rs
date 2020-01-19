@@ -36,10 +36,8 @@ fn main() {
     .with(ParticleVelocity(velocity))
     .with(ParticleDeformation::new(youngs_modulus, nu))
     .each(|&par, world| {
-      let pos = world.position(par);
-      let xp = pos.x >= center.x;
-      let yp = pos.y >= center.y;
-      let zp = pos.z >= center.z;
+      let pos = world.get::<ParticlePosition>(par).unwrap().get();
+      let (xp, yp, zp) = (pos.x >= center.x, pos.y >= center.y, pos.z >= center.z);
       if (xp && yp && zp) || (xp && !yp && !zp) || (!xp && yp && !zp) || (!xp && !yp && zp) {
         world.insert(par, ParticleColor(color_1));
       } else {

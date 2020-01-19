@@ -1,7 +1,7 @@
-use nalgebra as na;
 use mpm_ply_dump::PlyDumpSystem;
 use mpm_rs::*;
 use msh_rs::*;
+use nalgebra as na;
 use pbr::ProgressBar;
 use std::time::SystemTime;
 
