@@ -2,6 +2,7 @@ extern crate nalgebra as na;
 extern crate rand;
 extern crate rayon;
 extern crate specs;
+extern crate msh_rs;
 
 pub mod components;
 pub mod resources;
@@ -12,6 +13,8 @@ pub use components::*;
 pub use resources::*;
 pub use systems::*;
 pub use utils::*;
+
+use msh_rs::TetrahedronMesh;
 
 pub struct WorldBuilder<'a, 'b> {
   grid: Grid,
@@ -291,6 +294,39 @@ impl<'a, 'b> World<'a, 'b> {
       let pos = random_point_in_cube(min, max);
       let hdl = self.put_particle(pos, ind_mass).with(ParticleVolume(ind_volume));
       entities.push(hdl.entities[0]);
+    }
+
+    // Return the handle
+    ParticlesHandle {
+      world: &mut self.world,
+      entities,
+    }
+  }
+
+  pub fn put_tetra_mesh(&mut self, mesh: &TetrahedronMesh, transf: Transform3f, density: f32, par_mass: f32) -> ParticlesHandle {
+    // All the added entities
+    let mut entities = vec![];
+
+    // Iterate through all tetrahedrons
+    for tetra in &mesh.elems {
+      let p1 = transf * msh_node_to_point(&mesh.nodes[tetra.i1]);
+      let p2 = transf * msh_node_to_point(&mesh.nodes[tetra.i2]);
+      let p3 = transf * msh_node_to_point(&mesh.nodes[tetra.i3]);
+      let p4 = transf * msh_node_to_point(&mesh.nodes[tetra.i4]);
+      let a = p2 - p1;
+      let b = p3 - p1;
+      let c = p4 - p1;
+      let volume = Vector3f::dot(&a, &Vector3f::cross(&b, &c)) / 6.0;
+      let mass = volume * density;
+      let num_pars = mass / par_mass;
+      let par_volume = volume / num_pars;
+      for _ in 0..num_pars as usize {
+        let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
+        let hdl = self
+          .put_particle(pos, par_mass)
+          .with(ParticleVolume(par_volume));
+        entities.push(hdl.entities[0]);
+      }
     }
 
     // Return the handle

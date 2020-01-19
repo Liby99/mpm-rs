@@ -67,15 +67,11 @@ fn main() {
   world.put_friction_boundary(boundary_thickness, boundary_fric_mu);
 
   // Put the balls
-  for Ball {
-    center,
-    velocity,
-    radius,
-    mass,
-    num_particles,
-  } in balls
-  {
-    world.put_ball(center, radius, velocity, mass, num_particles, youngs_modulus, nu);
+  for b in balls {
+    world
+      .put_ball(b.center, b.radius, b.mass, b.num_particles)
+      .with(ParticleVelocity(b.velocity))
+      .with(ParticleDeformation::new(youngs_modulus, nu));
   }
 
   // Make the world only show a portion

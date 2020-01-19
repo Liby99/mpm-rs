@@ -9,3 +9,4 @@ specs = "0.15"
 nalgebra = "0.19.0"
 rand = "0.7.2"
 rayon = "1.2"
+msh-rs = { path = "../lib/msh-rs" }

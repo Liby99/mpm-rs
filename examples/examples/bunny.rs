@@ -1,12 +1,9 @@
+use nalgebra as na;
 use mpm_ply_dump::PlyDumpSystem;
 use mpm_rs::*;
-use msh_rs::{Node, TetrahedronMesh};
+use msh_rs::*;
 use pbr::ProgressBar;
 use std::time::SystemTime;
-
-fn node_to_vec(node: &Node) -> Vector3f {
-  Vector3f::new(node.x as f32, node.y as f32, node.z as f32)
-}
 
 fn main() {
   let start = SystemTime::now();
@@ -26,8 +23,10 @@ fn main() {
   let density = 1500.0;
   let particle_mass = 0.005;
   let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
-  let bunny_scale = 3.5;
-  let bunny_offset = Vector3f::new(0.5, 0.3, 0.5);
+  let translation = na::Translation3::from(Vector3f::new(0.5, 0.3, 0.5));
+  let rotation = na::UnitQuaternion::identity();
+  let scale = 3.5;
+  let transf = na::Similarity3::from_parts(translation, rotation, scale);
   let output_random_portion = 0.1;
 
   // Create output directory
@@ -46,27 +45,10 @@ fn main() {
 
   // Put the bunny
   let bunny = TetrahedronMesh::load(bunny_file).unwrap();
-  for tetra in bunny.elems {
-    let p1 = node_to_vec(&bunny.nodes[tetra.i1]) * bunny_scale + bunny_offset;
-    let p2 = node_to_vec(&bunny.nodes[tetra.i2]) * bunny_scale + bunny_offset;
-    let p3 = node_to_vec(&bunny.nodes[tetra.i3]) * bunny_scale + bunny_offset;
-    let p4 = node_to_vec(&bunny.nodes[tetra.i4]) * bunny_scale + bunny_offset;
-    let a = p2 - p1;
-    let b = p3 - p1;
-    let c = p4 - p1;
-    let volume = Vector3f::dot(&a, &Vector3f::cross(&b, &c)) / 6.0;
-    let mass = volume * density;
-    let num_pars = mass / particle_mass;
-    let par_volume = volume / num_pars;
-    for _ in 0..num_pars as usize {
-      let pos = random_point_in_tetra(p1, p2, p3, p4);
-      world
-        .put_particle(pos, particle_mass)
-        .with(ParticleVolume(par_volume))
-        .with(ParticleVelocity(bunny_velocity))
-        .with(ParticleDeformation::new(youngs_modulus, nu));
-    }
-  }
+  world
+    .put_tetra_mesh(&bunny, na::convert(transf), density, particle_mass)
+    .with(ParticleVelocity(bunny_velocity))
+    .with(ParticleDeformation::new(youngs_modulus, nu));
 
   // Make the world only show a portion
   world.only_show_random_portion(output_random_portion);
