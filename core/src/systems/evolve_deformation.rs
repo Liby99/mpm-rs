@@ -54,10 +54,10 @@ impl<'a> System<'a> for EvolveDeformationSystem {
 
             // New $F_{E_p}$
             let new_f_e = u * Matrix3f::from_diagonal(&sigma) * v_t;
-            let new_f_p = v_t.transpose() * Matrix3f::from_diagonal(&sigma_inv) * u.transpose() * new_f;
+            let _new_f_p = v_t.transpose() * Matrix3f::from_diagonal(&sigma_inv) * u.transpose() * new_f;
 
             def.f_elastic = new_f_e;
-            def.f_plastic = new_f_p;
+            // def.f_plastic = new_f_p;
           },
           _ => panic!("Cannot decompose svd"),
         }
