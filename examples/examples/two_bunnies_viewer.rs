@@ -1,6 +1,6 @@
 use mpm_rs::*;
-use msh_rs::*;
 use mpm_viewer::*;
+use msh_rs::*;
 use nalgebra as na;
 
 fn main() {

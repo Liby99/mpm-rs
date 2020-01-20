@@ -14,9 +14,9 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
-use std::marker::PhantomData;
 use msh_rs::TetrahedronMesh;
 use specs::prelude::DispatcherBuilder;
+use std::marker::PhantomData;
 
 type SpecsWorld = specs::prelude::World;
 
@@ -95,9 +95,7 @@ impl<'a, 'b> ParticlesHandle<'a, 'b> {
           (*self.world).remove::<Hidden>(ent);
         }
       } else {
-        unsafe {
-          (*self.world).insert(ent, Hidden)
-        }
+        unsafe { (*self.world).insert(ent, Hidden) }
       }
     }
     self
@@ -317,7 +315,11 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle { phantom: PhantomData, world: self, entities }
+    ParticlesHandle {
+      phantom: PhantomData,
+      world: self,
+      entities,
+    }
   }
 
   pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
@@ -336,7 +338,11 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle { phantom: PhantomData, world: self, entities }
+    ParticlesHandle {
+      phantom: PhantomData,
+      world: self,
+      entities,
+    }
   }
 
   pub fn put_tetra_mesh(
@@ -370,6 +376,10 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle { phantom: PhantomData, world: self, entities }
+    ParticlesHandle {
+      phantom: PhantomData,
+      world: self,
+      entities,
+    }
   }
 }

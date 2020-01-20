@@ -26,21 +26,21 @@ fn main() {
       center: Vector3f::new(0.5, 0.4, 0.5),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 10000
+      num_particles: 10000,
     },
     // Left ear
     Ball {
       center: Vector3f::new(0.58, 0.6, 0.58),
       radius: 0.05,
       mass: 1.25,
-      num_particles: 1250
+      num_particles: 1250,
     },
     // Right ear
     Ball {
       center: Vector3f::new(0.58, 0.6, 0.58),
       radius: 0.05,
       mass: 1.25,
-      num_particles: 1250
+      num_particles: 1250,
     },
   ];
 

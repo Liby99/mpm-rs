@@ -13,8 +13,8 @@ use kiss3d::camera::Camera;
 use kiss3d::planar_camera::PlanarCamera;
 use kiss3d::post_processing::PostProcessingEffect;
 use kiss3d::renderer::Renderer;
-use kiss3d::window::{State, Window};
 use kiss3d::scene::SceneNode;
+use kiss3d::window::{State, Window};
 use na::{Point3, Translation3};
 
 use mpm_rs::{

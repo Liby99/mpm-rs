@@ -115,7 +115,6 @@ impl<'a> System<'a> for ApplyElasticitySystem {
 
   fn run(&mut self, (dt, mut grid, positions, volumes, deformations): Self::SystemData) {
     for (position, volume, def) in (&positions, &volumes, &deformations).join() {
-
       // Get the $hat{F_E_p}$
       let mut f_e_hat = Matrix3f::identity();
       for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
