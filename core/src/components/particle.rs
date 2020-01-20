@@ -64,10 +64,26 @@ impl Component for ParticleVelocity {
 
 #[derive(Copy, Clone)]
 pub struct ParticleDeformation {
-  /// F
-  pub deformation_gradient: Matrix3f,
+  /// F_E, elastic deformation gradient
+  pub f_elastic: Matrix3f,
+
+  /// F_P, plastic deformation gradient
+  pub f_plastic: Matrix3f,
+
+  /// mu_0, one of the initial Lame parameters
   pub mu: f32,
+
+  /// lambda_0, the other one of the initial Lame parameters
   pub lambda: f32,
+
+  /// Compression limit
+  pub theta_c: f32,
+
+  /// Stretch limit
+  pub theta_s: f32,
+
+  /// Hardening Factor, 0 for no hardening
+  pub hardening: f32,
 }
 
 impl ParticleDeformation {
@@ -75,9 +91,27 @@ impl ParticleDeformation {
   /// nu: Poisson Ratio
   pub fn new(youngs_modulus: f32, nu: f32) -> Self {
     Self {
-      deformation_gradient: Matrix3f::identity(),
+      f_elastic: Matrix3f::identity(),
+      f_plastic: Matrix3f::identity(),
       mu: youngs_modulus / (2.0 * (1.0 + nu)),
       lambda: youngs_modulus * nu / ((1.0 + nu) * (1.0 - 2.0 * nu)),
+      theta_c: 1.0,
+      theta_s: 1.0,
+      hardening: 0.0,
+    }
+  }
+
+  pub fn snow() -> Self {
+    let youngs_modulus = 140000.0;
+    let poisson_ratio = 0.2;
+    Self {
+      f_elastic: Matrix3f::identity(),
+      f_plastic: Matrix3f::identity(),
+      mu: youngs_modulus / (2.0 * (1.0 + poisson_ratio)),
+      lambda: youngs_modulus * poisson_ratio / ((1.0 + poisson_ratio) * (1.0 - 2.0 * poisson_ratio)),
+      theta_c: 0.025,
+      theta_s: 0.0075,
+      hardening: 10.0,
     }
   }
 }

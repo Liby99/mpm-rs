@@ -53,8 +53,8 @@ fn dj_df(m: Matrix3f) -> Matrix3f {
 /// Find $R = U \times V^T$ given $[U, \sigma, V] = svd(M)$ and $M$
 ///
 /// $$R = U * V^T$$
-fn get_rotation(deformation: Matrix3f) -> Matrix3f {
-  let svd = deformation.svd(true, true);
+fn get_rotation(f: Matrix3f) -> Matrix3f {
+  let svd = f.svd(true, true);
   match (svd.u, svd.v_t) {
     (Some(u), Some(v_t)) => {
       // Invert the related U and Sigma component
@@ -83,12 +83,15 @@ fn get_rotation(deformation: Matrix3f) -> Matrix3f {
 }
 
 /// Find $\bold{P} = \frac{\partial \Phi}{\partial \bold{F}}$
-fn fixed_corotated(deformation: Matrix3f, mu: f32, lambda: f32) -> Matrix3f {
-  let r = get_rotation(deformation);
-  let j = deformation.determinant(); // J > 0
-  assert!(j >= 0.0); // !!!!!!!!
-  let jf_t = dj_df(deformation);
-  2.0 * mu * (deformation - r) + lambda * (j - 1.0) * jf_t
+fn fixed_corotated(f_e: Matrix3f, f_p: Matrix3f, mu_0: f32, lambda_0: f32, hardening: f32) -> Matrix3f {
+  let j_e = f_e.determinant();
+  let j_p = f_p.determinant();
+  // assert!(j_p >= 0.0); // !!!!!!!!
+  let r_e = get_rotation(f_e);
+  let mu = mu_0 * std::f32::consts::E.powf(hardening * (1.0 - j_p));
+  let lambda = lambda_0 * std::f32::consts::E.powf(hardening * (1.0 - j_p));
+  let dje_dfe = dj_df(f_e);
+  2.0 * mu * (f_e - r_e) + lambda * (j_e - 1.0) * dje_dfe
 }
 
 pub struct ApplyElasticitySystem;
@@ -102,9 +105,10 @@ impl<'a> System<'a> for ApplyElasticitySystem {
   );
 
   fn run(&mut self, (mut grid, positions, volumes, deformations): Self::SystemData) {
-    for (position, volume, deformation) in (&positions, &volumes, &deformations).join() {
-      let stress = fixed_corotated(deformation.deformation_gradient, deformation.mu, deformation.lambda);
-      let vp0pft = volume.get() * stress * deformation.deformation_gradient.transpose();
+    for (position, volume, def) in (&positions, &volumes, &deformations).join() {
+      // TODO: Change f_elastic to f_elastic_hat
+      let stress = fixed_corotated(def.f_elastic, def.f_plastic, def.mu, def.lambda, def.hardening);
+      let vp0pft = volume.get() * stress * def.f_elastic.transpose();
       for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
         let node = grid.get_node_mut(node_index);
         node.force -= vp0pft * grad_w;
