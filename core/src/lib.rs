@@ -14,6 +14,7 @@ pub use resources::*;
 pub use systems::*;
 pub use utils::*;
 
+use std::marker::PhantomData;
 use msh_rs::TetrahedronMesh;
 use specs::prelude::DispatcherBuilder;
 
@@ -72,6 +73,7 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
 }
 
 pub struct ParticlesHandle<'a, 'b> {
+  phantom: PhantomData<World<'a, 'b>>,
   world: *mut World<'a, 'b>,
   entities: Vec<Particle>,
 }
@@ -294,6 +296,7 @@ impl<'a, 'b> World<'a, 'b> {
       .with(ParticleMass(mass))
       .build();
     ParticlesHandle {
+      phantom: PhantomData,
       world: self,
       entities: vec![ent],
     }
@@ -314,7 +317,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle { world: self, entities }
+    ParticlesHandle { phantom: PhantomData, world: self, entities }
   }
 
   pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
@@ -333,7 +336,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle { world: self, entities }
+    ParticlesHandle { phantom: PhantomData, world: self, entities }
   }
 
   pub fn put_tetra_mesh(
@@ -367,6 +370,6 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle { world: self, entities }
+    ParticlesHandle { phantom: PhantomData, world: self, entities }
   }
 }

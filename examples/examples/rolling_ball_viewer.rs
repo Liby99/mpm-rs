@@ -6,7 +6,7 @@ fn main() {
   let world_size = Vector3f::new(10.0, 1.0, 1.0);
   let grid_h = 0.02;
   let youngs_modulus = 200000.0;
-  let nu = 0.15;
+  let poisson_ratio = 0.15;
   let boundary_thickness = 0.04;
   let boundary_fric_mu = 1.0;
 
@@ -16,8 +16,8 @@ fn main() {
   let radius = 0.1;
   let mass = 20.0;
   let num_particles = 5000;
-  let color_1 = Color::new(1.0, 0.0, 0.0);
-  let color_2 = Color::new(0.5, 0.0, 0.0);
+  let color_1 = Color::new(0.0, 1.0, 0.0);
+  let color_2 = Color::new(0.0, 0.0, 1.0);
 
   // Initialize the world, use WindowSystem to visualize
   let mut world = WorldBuilder::new(world_size, grid_h)
@@ -34,7 +34,7 @@ fn main() {
   world
     .put_ball(center, radius, mass, num_particles)
     .with(ParticleVelocity(velocity))
-    .with(ParticleDeformation::new(youngs_modulus, nu))
+    .with(ParticleDeformation::new(youngs_modulus, poisson_ratio))
     .each(|&par, world| {
       let pos = world.get::<ParticlePosition>(par).unwrap().get();
       let (xp, yp, zp) = (pos.x >= center.x, pos.y >= center.y, pos.z >= center.z);
