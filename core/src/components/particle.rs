@@ -89,7 +89,7 @@ pub struct ParticleDeformation {
 impl ParticleDeformation {
   /// E_0: Initial Young's Modulus
   /// nu: Poisson Ratio
-  pub fn new(youngs_modulus: f32, nu: f32) -> Self {
+  pub fn elastic(youngs_modulus: f32, nu: f32) -> Self {
     Self {
       f_elastic: Matrix3f::identity(),
       f_plastic: Matrix3f::identity(),

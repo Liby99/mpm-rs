@@ -84,13 +84,21 @@ fn get_rotation(f: Matrix3f) -> Matrix3f {
 
 /// Find $\bold{P} = \frac{\partial \Phi}{\partial \bold{F}}$
 fn fixed_corotated(f_e: Matrix3f, f_p: Matrix3f, mu_0: f32, lambda_0: f32, hardening: f32) -> Matrix3f {
+  // Get J_E, J_P and R
   let j_e = f_e.determinant();
   let j_p = f_p.determinant();
-  // assert!(j_p >= 0.0); // !!!!!!!!
+  assert!(j_p >= 0.0); // !!!!!!!!
   let r_e = get_rotation(f_e);
-  let mu = mu_0 * std::f32::consts::E.powf(hardening * (1.0 - j_p));
-  let lambda = lambda_0 * std::f32::consts::E.powf(hardening * (1.0 - j_p));
+
+  // Get mu and lambda from mu_0 and lambda_0
+  let hardening_factor = std::f32::consts::E.powf(hardening * (1.0 - j_p));
+  let mu = mu_0 * hardening_factor;
+  let lambda = lambda_0 * hardening_factor;
+
+  // Get dJ_E/dF_E
   let dje_dfe = dj_df(f_e);
+
+  // Formula (5) in https://www.math.ucla.edu/~jteran/papers/SSCTS13.pdf
   2.0 * mu * (f_e - r_e) + lambda * (j_e - 1.0) * dje_dfe
 }
 
@@ -98,16 +106,26 @@ pub struct ApplyElasticitySystem;
 
 impl<'a> System<'a> for ApplyElasticitySystem {
   type SystemData = (
+    Read<'a, DeltaTime>,
     Write<'a, Grid>,
     ReadStorage<'a, ParticlePosition>,
     ReadStorage<'a, ParticleVolume>,
     ReadStorage<'a, ParticleDeformation>,
   );
 
-  fn run(&mut self, (mut grid, positions, volumes, deformations): Self::SystemData) {
+  fn run(&mut self, (dt, mut grid, positions, volumes, deformations): Self::SystemData) {
     for (position, volume, def) in (&positions, &volumes, &deformations).join() {
-      // TODO: Change f_elastic to f_elastic_hat
-      let stress = fixed_corotated(def.f_elastic, def.f_plastic, def.mu, def.lambda, def.hardening);
+
+      // Get the $hat{F_E_p}$
+      let mut f_e_hat = Matrix3f::identity();
+      for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
+        let node = grid.get_node(node_index);
+        f_e_hat += dt.get() * node.velocity_temp * grad_w.transpose();
+      }
+      f_e_hat = f_e_hat * def.f_elastic;
+
+      // Use the fixed corotated model
+      let stress = fixed_corotated(f_e_hat, def.f_plastic, def.mu, def.lambda, def.hardening);
       let vp0pft = volume.get() * stress * def.f_elastic.transpose();
       for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
         let node = grid.get_node_mut(node_index);

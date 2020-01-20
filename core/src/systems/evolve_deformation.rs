@@ -30,26 +30,31 @@ impl<'a> System<'a> for EvolveDeformationSystem {
     (&positions, &mut deformations)
       .par_join()
       .for_each(|(position, def)| {
+
+        // First compute gradient v_p
         let mut grad_vp = Matrix3f::zeros();
         for (node_index, _, grad_w) in grid.neighbor_weights(position.get()) {
           let node = grid.get_node(node_index);
           grad_vp += node.velocity * grad_w.transpose();
         }
 
-        let temp_factor = Matrix3f::identity() + dt.get() * grad_vp;
-        let temp_f = temp_factor * (def.f_elastic * def.f_plastic);
-        let temp_f_e = temp_factor * def.f_elastic;
-        // let temp_f_p = def.f_plastic;
+        // Then compute $\hat{F_{E_p}^{n + 1}}$ and $F_p^{n + 1}$
+        let temp_f_e = (Matrix3f::identity() + dt.get() * grad_vp) * def.f_elastic;
+        let new_f = temp_f_e * def.f_plastic;
 
+        // Do SVD on temp_f_e
         let svd = temp_f_e.svd(true, true);
         match (svd.u, svd.v_t) {
           (Some(u), Some(v_t)) => {
 
-            let sigma_v = clamp_sigma(svd.singular_values, def.theta_c, def.theta_s);
-            let sigma = Matrix3f::from_diagonal(&sigma_v);
-            let sigma_inv = Matrix3f::from_diagonal(&Vector3f::repeat(1.0).component_div(&sigma_v));
-            let new_f_e = u * sigma * v_t;
-            let new_f_p = v_t.transpose() * sigma_inv * u.transpose() * temp_f;
+            // Clamp out values in sigma
+            let sigma_hat = svd.singular_values;
+            let sigma = clamp_sigma(sigma_hat, def.theta_c, def.theta_s);
+            let sigma_inv = Vector3f::new(1.0 / sigma.x, 1.0 / sigma.y, 1.0 / sigma.z);
+
+            // New $F_{E_p}$
+            let new_f_e = u * Matrix3f::from_diagonal(&sigma) * v_t;
+            let new_f_p = v_t.transpose() * Matrix3f::from_diagonal(&sigma_inv) * u.transpose() * new_f;
 
             def.f_elastic = new_f_e;
             def.f_plastic = new_f_p;

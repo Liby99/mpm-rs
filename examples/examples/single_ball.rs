@@ -32,7 +32,7 @@ fn main() {
   world.put_boundary(boundary_thickness);
   world
     .put_ball(center, radius, mass, num_particles)
-    .with(ParticleDeformation::new(youngs_modulus, nu));
+    .with(ParticleDeformation::elastic(youngs_modulus, nu));
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

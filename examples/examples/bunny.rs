@@ -48,7 +48,7 @@ fn main() {
   world
     .put_tetra_mesh(&bunny, na::convert(transf), density, particle_mass)
     .with(ParticleVelocity(bunny_velocity))
-    .with(ParticleDeformation::new(youngs_modulus, nu));
+    .with(ParticleDeformation::elastic(youngs_modulus, nu));
 
   // Make the world only show a portion
   world.hide_random_portion(hide_random_portion);

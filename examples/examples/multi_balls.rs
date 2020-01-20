@@ -70,7 +70,7 @@ fn main() {
     world
       .put_ball(b.center, b.radius, b.mass, b.num_particles)
       .with(ParticleVelocity(b.velocity))
-      .with(ParticleDeformation::new(youngs_modulus, nu));
+      .with(ParticleDeformation::elastic(youngs_modulus, nu));
   }
 
   // Generate progressbar and let it run

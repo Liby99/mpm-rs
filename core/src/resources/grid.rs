@@ -258,6 +258,12 @@ impl Grid {
     &mut self.nodes[index]
   }
 
+  /// Get the node position
+  pub fn node_position(&self, node_index: Vector3u) -> Vector3f {
+    let v = Vector3f::new(node_index.x as f32, node_index.y as f32, node_index.z as f32);
+    v * self.h
+  }
+
   /// Get 1d weight given position. Will normalize `pos` to index space.
   ///
   /// Returns the base node index, the weights of the three nodes, and the

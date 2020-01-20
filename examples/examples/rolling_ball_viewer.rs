@@ -34,7 +34,7 @@ fn main() {
   world
     .put_ball(center, radius, mass, num_particles)
     .with(ParticleVelocity(velocity))
-    .with(ParticleDeformation::new(youngs_modulus, poisson_ratio))
+    .with(ParticleDeformation::elastic(youngs_modulus, poisson_ratio))
     .each(|&par, world| {
       let pos = world.get::<ParticlePosition>(par).unwrap().get();
       let (xp, yp, zp) = (pos.x >= center.x, pos.y >= center.y, pos.z >= center.z);
