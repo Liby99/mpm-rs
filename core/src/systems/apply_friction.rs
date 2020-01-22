@@ -4,8 +4,6 @@ use specs::prelude::*;
 use crate::resources::*;
 use crate::utils::*; // Grid
 
-static THRESHOLD: f32 = 0.000001;
-
 pub struct ApplyFrictionSystem;
 
 impl<'a> System<'a> for ApplyFrictionSystem {
@@ -18,7 +16,7 @@ impl<'a> System<'a> for ApplyFrictionSystem {
         let tan_vel = node.velocity_temp - norm_vel;
 
         // Make sure that we have velocity in tangent velocity direction
-        if tan_vel.magnitude() > THRESHOLD {
+        if tan_vel.magnitude() > std::f32::EPSILON {
           // Calculate friction force magnitude
           let normal_force_mag = -f32::min(Vector3f::dot(&normal, &node.force), 0.0);
           let max_force_mag = node.mass * tan_vel.magnitude() / dt.get();

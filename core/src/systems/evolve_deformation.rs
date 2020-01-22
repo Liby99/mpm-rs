@@ -4,15 +4,11 @@ use crate::components::*;
 use crate::resources::*;
 use crate::utils::*;
 
-fn clamp(n: f32, theta_c: f32, theta_s: f32) -> f32 {
-  f32::min(f32::max(n, 1.0 - theta_c), 1.0 + theta_s)
-}
-
-fn clamp_sigma(sigma: Vector3f, theta_c: f32, theta_s: f32) -> Vector3f {
+fn clamp_sigma(sigma: Vector3f, low: f32, up: f32) -> Vector3f {
   Vector3f::new(
-    clamp(sigma.x, theta_c, theta_s),
-    clamp(sigma.y, theta_c, theta_s),
-    clamp(sigma.z, theta_c, theta_s),
+    clamp(sigma.x, low, up),
+    clamp(sigma.y, low, up),
+    clamp(sigma.z, low, up),
   )
 }
 
@@ -45,15 +41,15 @@ impl<'a> System<'a> for EvolveDeformationSystem {
         (Some(u), Some(v_t)) => {
           // Clamp out values in sigma
           let sigma_hat = svd.singular_values;
-          let sigma = clamp_sigma(sigma_hat, def.theta_c, def.theta_s);
+          let sigma = clamp_sigma(sigma_hat, 1.0 - def.theta_c, 1.0 + def.theta_s);
           let sigma_inv = Vector3f::new(1.0 / sigma.x, 1.0 / sigma.y, 1.0 / sigma.z);
 
           // New $F_{E_p}$
           let new_f_e = u * Matrix3f::from_diagonal(&sigma) * v_t;
-          let _new_f_p = v_t.transpose() * Matrix3f::from_diagonal(&sigma_inv) * u.transpose() * new_f;
+          let new_f_p = v_t.transpose() * Matrix3f::from_diagonal(&sigma_inv) * u.transpose() * new_f;
 
           def.f_elastic = new_f_e;
-          // def.f_plastic = new_f_p;
+          def.f_plastic = new_f_p;
         }
         _ => panic!("Cannot decompose svd"),
       }

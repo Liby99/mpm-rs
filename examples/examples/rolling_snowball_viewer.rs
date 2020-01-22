@@ -13,7 +13,7 @@ fn main() {
   let velocity = Vector3f::new(8.0, 0.0, 0.0);
   let radius = 0.1;
   let mass = 20.0;
-  let num_particles = 5000;
+  let num_particles = 10000;
   let color_1 = Color::new(0.0, 1.0, 0.0);
   let color_2 = Color::new(0.0, 0.0, 1.0);
 

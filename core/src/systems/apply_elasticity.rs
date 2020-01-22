@@ -91,9 +91,10 @@ fn fixed_corotated(f_e: Matrix3f, f_p: Matrix3f, mu_0: f32, lambda_0: f32, harde
   let r_e = get_rotation(f_e);
 
   // Get mu and lambda from mu_0 and lambda_0
-  let hardening_factor = std::f32::consts::E.powf(hardening * (1.0 - j_p));
-  let mu = mu_0 * hardening_factor;
-  let lambda = lambda_0 * hardening_factor;
+  let hardening_exp = hardening * (1.0 - j_p);
+  let _hardening_factor = std::f32::consts::E.powf(hardening_exp);
+  let mu = mu_0; // * hardening_factor; // TODO
+  let lambda = lambda_0; // * hardening_factor; // TODO
 
   // Get dJ_E/dF_E
   let dje_dfe = dj_df(f_e);
