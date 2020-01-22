@@ -49,6 +49,13 @@ Here we prefer `release` because it's so much faster than `debug`. `mickey_mouse
 will output `.ply` files into the directory `result/mickey_mouse`. You can visualize the
 result file using Houdini. You can check out more examples [here](examples/examples/).
 
+As of an example simulation in a window visualized by [kiss3d](http://kiss3d.org), you can
+run
+
+```
+$ cargo run --release --example multi_balls_viewer
+```
+
 ## Folder structure
 
 A pure MPM simulation framework is implemented in [`core/`](core/).
@@ -56,6 +63,8 @@ A pure MPM simulation framework is implemented in [`core/`](core/).
 A `.msh` loader (tetrahedron mesh loader) is implemented here in [`lib/msh-rs`](lib/msh-rs/).
 
 A `.ply` file exporter is implemented here in [`lib/ply-dump`](lib/ply-dump/).
+
+A viewer is implemented here in [`lib/viewer`](lib/viewer).
 
 Other examples are located here: [`examples/examples`](examples/examples).
 
