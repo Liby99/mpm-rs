@@ -5,33 +5,33 @@ This core library provides the simulation core functionalities. It also provides
 To construct an MPM world, you may want to use a `WorldBuilder`. After that you can configure the world by setting `dt`, setting boundary conditions, adding particles and so on.
 
 ``` rust
-let world_size = Vector3f::new(1.0, 1.0, 1.0);
-let cell_gap = 0.02;
-let mut world = WorldBuilder::new(world_size, cell_gap).build();
+use mpm_rs::*;
+use mpm_ply_dump::*;
 
-// Set the `dt` of the `world`
-world.set_dt(0.0001);
+fn main() {
 
-// Boundary condition: we have a boundary of thickness 0.04 (width of 2 nodes)
-world.put_boundary(0.04);
+  // Create a world
+  let mut world = WorldBuilder::new(Vector3f::new(1.0, 1.0, 1.0), 0.02).build();
 
-// Add a deformable ball
-let ball_center = Vector3f::new(0.5, 0.7, 0.5);
-let ball_radius = 0.1;
-let ball_velocity = Vector3f::zeros();
-let ball_mass = 10.0;
-let num_particles = 10000;
-let ball_youngs_modulus = 10000.0;
-let ball_nu = 0.2;
-world.put_ball(
-  ball_center,
-  ball_radius,
-  ball_velocity,
-  ball_mass,
-  num_particles,
-  youngs_modulus,
-  nu,
-);
+  // Set the dt
+  world.set_dt(0.001);
+
+  // Create a boundary to the world with a thickness of 0.06
+  world.put_boundary(0.06);
+
+  // Create a ball in the world
+  let center = Vector3f::new(0.5, 0.4, 0.5);
+  let (radius, mass, num_particles) = (0.1, 10.0, 10000);
+  let (youngs_modulus, nu) = (10000.0, 0.2);
+  world
+    .put_ball(center, radius, mass, num_particles)
+    .with(ParticleDeformation::new(youngs_modulus, nu));
+
+  // Run 500 steps
+  for _ in 0..500 {
+    world.step(); // Step once
+  }
+}
 ```
 
 ## What this library does not provide
