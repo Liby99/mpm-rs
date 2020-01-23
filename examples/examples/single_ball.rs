@@ -28,8 +28,10 @@ fn main() {
   // Set parameters
   world.set_dt(dt);
 
-  // Put the particles
+  // Put the boundary
   world.put_sticky_boundary(boundary_thickness);
+
+  // Put the ball
   world
     .put_ball(center, radius, mass, num_particles)
     .with(ParticleDeformation::elastic(youngs_modulus, nu));

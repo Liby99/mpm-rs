@@ -16,7 +16,6 @@ pub use utils::*;
 
 use msh_rs::TetrahedronMesh;
 use specs::prelude::DispatcherBuilder;
-use std::marker::PhantomData;
 
 type SpecsWorld = specs::prelude::World;
 
@@ -72,18 +71,15 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
   }
 }
 
-pub struct ParticlesHandle<'a, 'b> {
-  phantom: PhantomData<World<'a, 'b>>,
-  world: *mut World<'a, 'b>,
+pub struct ParticlesHandle<'w, 'a, 'b> {
+  world: &'w mut World<'a, 'b>,
   entities: Vec<Particle>,
 }
 
-impl<'a, 'b> ParticlesHandle<'a, 'b> {
+impl<'w, 'a, 'b> ParticlesHandle<'w, 'a, 'b> {
   pub fn with<T: specs::prelude::Component + Clone>(self, c: T) -> Self {
     for &ent in &self.entities {
-      unsafe {
-        (*self.world).insert(ent, c.clone());
-      }
+      self.world.insert(ent, c.clone());
     }
     self
   }
@@ -91,11 +87,9 @@ impl<'a, 'b> ParticlesHandle<'a, 'b> {
   pub fn hide_random_portion(self, percentage: f32) -> Self {
     for &ent in &self.entities {
       if random() > percentage {
-        unsafe {
-          (*self.world).remove::<Hidden>(ent);
-        }
+        self.world.remove::<Hidden>(ent);
       } else {
-        unsafe { (*self.world).insert(ent, Hidden) }
+        self.world.insert(ent, Hidden);
       }
     }
     self
@@ -106,9 +100,7 @@ impl<'a, 'b> ParticlesHandle<'a, 'b> {
     F: Fn(&Particle, &mut World<'a, 'b>),
   {
     for ent in &self.entities {
-      unsafe {
-        f(ent, &mut (*self.world));
-      }
+      f(ent, self.world);
     }
     self
   }
@@ -251,7 +243,7 @@ impl<'a, 'b> World<'a, 'b> {
   }
 
   /// Put a single particle at a given position with a given mass.
-  pub fn put_particle(&mut self, pos: Vector3f, mass: f32) -> ParticlesHandle<'a, 'b> {
+  pub fn put_particle<'w>(&'w mut self, pos: Vector3f, mass: f32) -> ParticlesHandle<'w, 'a, 'b> {
     use specs::prelude::*;
     let ent = self
       .world
@@ -261,7 +253,6 @@ impl<'a, 'b> World<'a, 'b> {
       .with(ParticleMass(mass))
       .build();
     ParticlesHandle {
-      phantom: PhantomData,
       world: self,
       entities: vec![ent],
     }
@@ -269,7 +260,7 @@ impl<'a, 'b> World<'a, 'b> {
 
   /// Put a ball with a given center and radius. The ball will have a total mass of `mass`, and
   /// will contain `n` particles
-  pub fn put_ball(&mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
+  pub fn put_ball<'w>(&'w mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle<'w, 'a, 'b> {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
     let ind_mass = mass / (n as f32);
@@ -285,7 +276,6 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Return the handle
     ParticlesHandle {
-      phantom: PhantomData,
       world: self,
       entities,
     }
@@ -293,7 +283,7 @@ impl<'a, 'b> World<'a, 'b> {
 
   /// Put a cube to the world, with the given `min` corner position and `max` corner
   /// position.
-  pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
+  pub fn put_cube<'w>(&'w mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'w, 'a, 'b> {
     assert!(min.x < max.x && min.y < max.y && min.z < max.z);
 
     // Calculate individual mass and volume
@@ -312,7 +302,6 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Return the handle
     ParticlesHandle {
-      phantom: PhantomData,
       world: self,
       entities,
     }
@@ -321,13 +310,13 @@ impl<'a, 'b> World<'a, 'b> {
   /// Put a tetrahedron mesh to the world, given the `mesh` and `transf` as transform.
   /// You also need to provide a `density` (mass per unit cube) and the `par_mass` (mass
   /// per particle).
-  pub fn put_tetra_mesh(
-    &mut self,
+  pub fn put_tetra_mesh<'w>(
+    &'w mut self,
     mesh: &TetrahedronMesh,
     transf: Transform3f,
     density: f32,
     par_mass: f32,
-  ) -> ParticlesHandle<'a, 'b> {
+  ) -> ParticlesHandle<'w, 'a, 'b> {
     // All the added entities
     let mut entities = vec![];
 
@@ -353,7 +342,6 @@ impl<'a, 'b> World<'a, 'b> {
 
     // Return the handle
     ParticlesHandle {
-      phantom: PhantomData,
       world: self,
       entities,
     }
