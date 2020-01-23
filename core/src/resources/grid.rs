@@ -7,7 +7,7 @@ pub enum Boundary {
   None,
 
   /// When dealing with the node velocity, set it to zero
-  SetZero,
+  Sticky,
 
   /// Remove the velocity component along surface normal
   Sliding {
@@ -81,7 +81,7 @@ impl Node {
   pub fn set_boundary_velocity(&mut self) {
     match self.boundary {
       Boundary::None => {}
-      Boundary::SetZero => {
+      Boundary::Sticky => {
         self.velocity = Vector3f::zeros();
       }
       Boundary::Sliding { normal } | Boundary::Friction { normal, .. } => {

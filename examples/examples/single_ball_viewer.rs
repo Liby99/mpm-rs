@@ -22,7 +22,7 @@ fn main() {
   world.set_dt(dt);
 
   // Put the particles
-  world.put_boundary(boundary_thickness);
+  world.put_sticky_boundary(boundary_thickness);
   world
     .put_ball(center, radius, mass, num_particles)
     .with(ParticleDeformation::elastic(youngs_modulus, nu));

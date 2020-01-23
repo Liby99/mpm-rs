@@ -176,114 +176,81 @@ impl<'a, 'b> World<'a, 'b> {
     store.remove(p);
   }
 
-  /// Put the `SetZero` boundary type to the boundary of the world within a given thickness
-  pub fn put_boundary(&mut self, thickness: f32) {
+  /// Get the dimension of nodes of the grid
+  pub fn dimension(&self) -> Vector3u {
+    let grid = self.world.fetch::<Grid>();
+    grid.dim
+  }
+
+  /// Get the h, the distance between a pair of neighbor node, of the grid
+  pub fn h(&self) -> f32 {
+    let grid = self.world.fetch::<Grid>();
+    grid.h
+  }
+
+  /// Get the size of the grid
+  pub fn size(&self) -> Vector3f {
+    let grid = self.world.fetch::<Grid>();
+    grid.size()
+  }
+
+  /// Put a boundary. Accept a callback function where given a node index, return an optional
+  /// boundary. If `None` is returned from the callback, then nothing will be done; If `Some`
+  /// is returned, then the boundary at that location will be updated
+  pub fn put_boundary<F>(&mut self, f: F) where F: Fn(Vector3u) -> Option<Boundary> {
     let mut grid = self.world.fetch_mut::<Grid>();
-    let dim = grid.dim;
-    let num_nodes = (thickness / grid.h).ceil() as usize;
     for node_index in grid.indices() {
-      let boundary = if node_index.x < num_nodes {
-        Boundary::SetZero
-      } else if node_index.x > dim.x - num_nodes {
-        Boundary::SetZero
-      } else if node_index.y < num_nodes {
-        Boundary::SetZero
-      } else if node_index.y > dim.y - num_nodes {
-        Boundary::SetZero
-      } else if node_index.z < num_nodes {
-        Boundary::SetZero
-      } else if node_index.z > dim.z - num_nodes {
-        Boundary::SetZero
-      } else {
-        Boundary::None
-      };
-      grid.get_node_mut(node_index).boundary = boundary;
+      if let Some(b) = f(node_index) {
+        grid.get_node_mut(node_index).boundary = b;
+      }
     }
+  }
+
+  /// Put a wrapping boundary around the grid with a given thickness. It will accept a callback
+  /// function `f`, which should accept a type of `Wall` and return a corresponding boundary.
+  ///
+  /// As a difference to `put_boundary`, no `None` would be accepted here.
+  pub fn put_wrapping_boundary<F>(&mut self, thickness: f32, f: F) where F: Fn(Wall) -> Boundary {
+    let dim = self.dimension();
+    let num_nodes = (thickness / self.h()) as usize;
+    self.put_boundary(|node_index| {
+      if node_index.x < num_nodes {
+        Some(f(Wall::Left))
+      } else if node_index.x > dim.x - num_nodes {
+        Some(f(Wall::Right))
+      } else if node_index.y < num_nodes {
+        Some(f(Wall::Bottom))
+      } else if node_index.y > dim.y - num_nodes {
+        Some(f(Wall::Up))
+      } else if node_index.z < num_nodes {
+        Some(f(Wall::Front))
+      } else if node_index.z > dim.z - num_nodes {
+        Some(f(Wall::Back))
+      } else {
+        None
+      }
+    })
+  }
+
+  /// Put the `SetZero` boundary type to the boundary of the world within a given thickness
+  pub fn put_sticky_boundary(&mut self, thickness: f32) {
+    self.put_wrapping_boundary(thickness, |_| Boundary::Sticky)
   }
 
   /// Put the `Sliding` boundary type to the boundary of the world within a given thickness.
   /// The normal of the boundary will be automatically the normal of the box pointing inward.
   pub fn put_sliding_boundary(&mut self, thickness: f32) {
-    let mut grid = self.world.fetch_mut::<Grid>();
-    let dim = grid.dim;
-    let num_nodes = (thickness / grid.h).ceil() as usize;
-    for node_index in grid.indices() {
-      let boundary = if node_index.x < num_nodes {
-        Boundary::Sliding {
-          normal: Vector3f::new(1.0, 0.0, 0.0),
-        }
-      } else if node_index.x > dim.x - num_nodes {
-        Boundary::Sliding {
-          normal: Vector3f::new(-1.0, 0.0, 0.0),
-        }
-      } else if node_index.y < num_nodes {
-        Boundary::Sliding {
-          normal: Vector3f::new(0.0, 1.0, 0.0),
-        }
-      } else if node_index.y > dim.y - num_nodes {
-        Boundary::Sliding {
-          normal: Vector3f::new(0.0, -1.0, 0.0),
-        }
-      } else if node_index.z < num_nodes {
-        Boundary::Sliding {
-          normal: Vector3f::new(0.0, 0.0, 1.0),
-        }
-      } else if node_index.z > dim.z - num_nodes {
-        Boundary::Sliding {
-          normal: Vector3f::new(0.0, 0.0, -1.0),
-        }
-      } else {
-        Boundary::None
-      };
-      grid.get_node_mut(node_index).boundary = boundary;
-    }
+    self.put_wrapping_boundary(thickness, |w| Boundary::Sliding { normal: w.normal() })
   }
 
   /// Put the `Friction` boundary type to the boundary of the world within a given thickness.
   /// The normal of the boundary will be automatically the normal of the box pointing inward.
   /// The friction constant is given by the argument `mu`.
   pub fn put_friction_boundary(&mut self, thickness: f32, mu: f32) {
-    let mut grid = self.world.fetch_mut::<Grid>();
-    let dim = grid.dim;
-    let num_nodes = (thickness / grid.h).ceil() as usize;
-    for node_index in grid.indices() {
-      let boundary = if node_index.x < num_nodes {
-        Boundary::Friction {
-          normal: Vector3f::new(1.0, 0.0, 0.0),
-          mu,
-        }
-      } else if node_index.x > dim.x - num_nodes {
-        Boundary::Friction {
-          normal: Vector3f::new(-1.0, 0.0, 0.0),
-          mu,
-        }
-      } else if node_index.y < num_nodes {
-        Boundary::Friction {
-          normal: Vector3f::new(0.0, 1.0, 0.0),
-          mu,
-        }
-      } else if node_index.y > dim.y - num_nodes {
-        Boundary::Friction {
-          normal: Vector3f::new(0.0, -1.0, 0.0),
-          mu,
-        }
-      } else if node_index.z < num_nodes {
-        Boundary::Friction {
-          normal: Vector3f::new(0.0, 0.0, 1.0),
-          mu,
-        }
-      } else if node_index.z > dim.z - num_nodes {
-        Boundary::Friction {
-          normal: Vector3f::new(0.0, 0.0, -1.0),
-          mu,
-        }
-      } else {
-        Boundary::None
-      };
-      grid.get_node_mut(node_index).boundary = boundary;
-    }
+    self.put_wrapping_boundary(thickness, |w| Boundary::Friction { normal: w.normal(), mu })
   }
 
+  /// Put a single particle at a given position with a given mass.
   pub fn put_particle(&mut self, pos: Vector3f, mass: f32) -> ParticlesHandle<'a, 'b> {
     use specs::prelude::*;
     let ent = self
@@ -300,6 +267,8 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Put a ball with a given center and radius. The ball will have a total mass of `mass`, and
+  /// will contain `n` particles
   pub fn put_ball(&mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
     // Calculate individual mass and volume
     let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
@@ -322,7 +291,11 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Put a cube to the world, with the given `min` corner position and `max` corner
+  /// position.
   pub fn put_cube(&mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'a, 'b> {
+    assert!(min.x < max.x && min.y < max.y && min.z < max.z);
+
     // Calculate individual mass and volume
     let diff = max - min;
     let total_volume = diff.x * diff.y * diff.z;
@@ -345,6 +318,9 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Put a tetrahedron mesh to the world, given the `mesh` and `transf` as transform.
+  /// You also need to provide a `density` (mass per unit cube) and the `par_mass` (mass
+  /// per particle).
   pub fn put_tetra_mesh(
     &mut self,
     mesh: &TetrahedronMesh,
