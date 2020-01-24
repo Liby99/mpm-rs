@@ -323,11 +323,18 @@ impl<'a, 'b> World<'a, 'b> {
       let volume = Vector3f::dot(&a, &Vector3f::cross(&b, &c)) / 6.0;
       let mass = volume * density;
       let num_pars = mass / par_mass;
-      let par_volume = volume / num_pars;
-      for _ in 0..num_pars as usize {
+      let num_pars_usize = num_pars as usize;
+      if num_pars_usize == 0 {
         let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
-        let hdl = self.put_particle(pos, par_mass).with(ParticleVolume(par_volume));
-        entities.push(hdl.entities[0]);
+        let hdl = self.put_particle(pos, mass).with(ParticleVolume::new(volume));
+        entities.push(hdl.entities[0])
+      } else {
+        let par_volume = volume / num_pars;
+        for _ in 0..num_pars_usize {
+          let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
+          let hdl = self.put_particle(pos, par_mass).with(ParticleVolume::new(par_volume));
+          entities.push(hdl.entities[0]);
+        }
       }
     }
 
