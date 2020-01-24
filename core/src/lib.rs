@@ -95,10 +95,7 @@ impl<'w, 'a, 'b> ParticlesHandle<'w, 'a, 'b> {
     self
   }
 
-  pub fn each<F>(self, f: F) -> Self
-  where
-    F: Fn(&Particle, &mut World<'a, 'b>),
-  {
+  pub fn each<F: Fn(&Particle, &mut World<'a, 'b>)>(self, f: F) -> Self {
     for ent in &self.entities {
       f(ent, self.world);
     }
@@ -189,7 +186,10 @@ impl<'a, 'b> World<'a, 'b> {
   /// Put a boundary. Accept a callback function where given a node index, return an optional
   /// boundary. If `None` is returned from the callback, then nothing will be done; If `Some`
   /// is returned, then the boundary at that location will be updated
-  pub fn put_boundary<F>(&mut self, f: F) where F: Fn(Vector3u) -> Option<Boundary> {
+  pub fn put_boundary<F>(&mut self, f: F)
+  where
+    F: Fn(Vector3u) -> Option<Boundary>,
+  {
     let mut grid = self.world.fetch_mut::<Grid>();
     for node_index in grid.indices() {
       if let Some(b) = f(node_index) {
@@ -202,7 +202,7 @@ impl<'a, 'b> World<'a, 'b> {
   /// function `f`, which should accept a type of `Wall` and return a corresponding boundary.
   ///
   /// As a difference to `put_boundary`, no `None` would be accepted here.
-  pub fn put_wrapping_boundary<F>(&mut self, thickness: f32, f: F) where F: Fn(Wall) -> Boundary {
+  pub fn put_wrapping_boundary<F: Fn(Wall) -> Boundary>(&mut self, thickness: f32, f: F) {
     let dim = self.dimension();
     let num_nodes = (thickness / self.h()) as usize;
     self.put_boundary(|node_index| {
@@ -275,10 +275,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle {
-      world: self,
-      entities,
-    }
+    ParticlesHandle { world: self, entities }
   }
 
   /// Put a cube to the world, with the given `min` corner position and `max` corner
@@ -301,10 +298,7 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle {
-      world: self,
-      entities,
-    }
+    ParticlesHandle { world: self, entities }
   }
 
   /// Put a tetrahedron mesh to the world, given the `mesh` and `transf` as transform.
@@ -341,9 +335,6 @@ impl<'a, 'b> World<'a, 'b> {
     }
 
     // Return the handle
-    ParticlesHandle {
-      world: self,
-      entities,
-    }
+    ParticlesHandle { world: self, entities }
   }
 }
