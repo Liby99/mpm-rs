@@ -186,10 +186,7 @@ impl<'a, 'b> World<'a, 'b> {
   /// Put a boundary. Accept a callback function where given a node index, return an optional
   /// boundary. If `None` is returned from the callback, then nothing will be done; If `Some`
   /// is returned, then the boundary at that location will be updated
-  pub fn put_boundary<F>(&mut self, f: F)
-  where
-    F: Fn(Vector3u) -> Option<Boundary>,
-  {
+  pub fn put_boundary<F: Fn(Vector3u) -> Option<Boundary>>(&mut self, f: F) {
     let mut grid = self.world.fetch_mut::<Grid>();
     for node_index in grid.indices() {
       if let Some(b) = f(node_index) {
@@ -215,9 +212,9 @@ impl<'a, 'b> World<'a, 'b> {
       } else if node_index.y > dim.y - num_nodes {
         Some(f(Wall::Up))
       } else if node_index.z < num_nodes {
-        Some(f(Wall::Front))
-      } else if node_index.z > dim.z - num_nodes {
         Some(f(Wall::Back))
+      } else if node_index.z > dim.z - num_nodes {
+        Some(f(Wall::Front))
       } else {
         None
       }

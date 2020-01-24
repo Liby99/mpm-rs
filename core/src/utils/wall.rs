@@ -5,8 +5,8 @@ pub enum Wall {
   Right,
   Bottom,
   Up,
-  Front,
   Back,
+  Front,
 }
 
 impl Wall {
@@ -16,8 +16,8 @@ impl Wall {
       Self::Right => Vector3f::new(-1.0, 0.0, 0.0),
       Self::Bottom => Vector3f::new(0.0, 1.0, 0.0),
       Self::Up => Vector3f::new(0.0, -1.0, 0.0),
-      Self::Front => Vector3f::new(0.0, 0.0, 1.0),
-      Self::Back => Vector3f::new(0.0, 0.0, -1.0),
+      Self::Back => Vector3f::new(0.0, 0.0, 1.0),
+      Self::Front => Vector3f::new(0.0, 0.0, -1.0),
     }
   }
 }
