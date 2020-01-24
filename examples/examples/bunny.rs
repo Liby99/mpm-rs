@@ -47,7 +47,7 @@ fn main() {
   let bunny = TetrahedronMesh::load(bunny_file).unwrap();
   world
     .put_tetra_mesh(&bunny, na::convert(transf), density, particle_mass)
-    .with(ParticleVelocity(bunny_velocity))
+    .with(ParticleVelocity::new(bunny_velocity))
     .with(ParticleDeformation::elastic(youngs_modulus, nu));
 
   // Make the world only show a portion

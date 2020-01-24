@@ -4,15 +4,17 @@ use crate::components::*;
 use crate::resources::*;
 use crate::utils::*;
 
-fn clamp_sigma(sigma: Vector3f, low: f32, up: f32) -> Vector3f {
-  Vector3f::new(
-    clamp(sigma.x, low, up),
-    clamp(sigma.y, low, up),
-    clamp(sigma.z, low, up),
-  )
-}
-
 pub struct EvolveDeformationSystem;
+
+impl EvolveDeformationSystem {
+  fn clamp_sigma(sigma: Vector3f, low: f32, up: f32) -> Vector3f {
+    Vector3f::new(
+      clamp(sigma.x, low, up),
+      clamp(sigma.y, low, up),
+      clamp(sigma.z, low, up),
+    )
+  }
+}
 
 impl<'a> System<'a> for EvolveDeformationSystem {
   type SystemData = (
@@ -41,7 +43,7 @@ impl<'a> System<'a> for EvolveDeformationSystem {
         (Some(u), Some(v_t)) => {
           // Clamp out values in sigma
           let sigma_hat = svd.singular_values;
-          let sigma = clamp_sigma(sigma_hat, 1.0 - def.theta_c, 1.0 + def.theta_s);
+          let sigma = Self::clamp_sigma(sigma_hat, 1.0 - def.theta_c, 1.0 + def.theta_s);
           let sigma_inv = Vector3f::new(1.0 / sigma.x, 1.0 / sigma.y, 1.0 / sigma.z);
 
           // New $F_{E_p}$

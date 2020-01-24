@@ -46,12 +46,12 @@ fn main() {
   // Put the bunnies; bunny #1 and bunny #2 only differs in transf
   world
     .put_tetra_mesh(&bunny, na::convert(transf_1), density, particle_mass)
-    .with(ParticleColor(color_1))
+    .with(ParticleColor::new(color_1))
     .with(ParticleDeformation::elastic(youngs_modulus, nu));
 
   world
     .put_tetra_mesh(&bunny, na::convert(transf_2), density, particle_mass)
-    .with(ParticleColor(color_2))
+    .with(ParticleColor::new(color_2))
     .with(ParticleDeformation::elastic(youngs_modulus, nu));
 
   // Print finish

@@ -31,14 +31,14 @@ fn main() {
   // Put the balls
   world
     .put_ball(center, radius, mass, num_particles)
-    .with(ParticleVelocity(velocity))
+    .with(ParticleVelocity::new(velocity))
     .with(ParticleDeformation::snow())
     .each(|&par, world| {
       let pos = world.get::<ParticlePosition>(par).unwrap().get();
       let (xp, yp, zp) = (pos.x >= center.x, pos.y >= center.y, pos.z >= center.z);
       let use_1 = (xp && yp && zp) || (xp && !yp && !zp) || (!xp && yp && !zp) || (!xp && !yp && zp);
       let color = if use_1 { color_1 } else { color_2 };
-      world.insert(par, ParticleColor(color));
+      world.insert(par, ParticleColor::new(color));
     });
 
   // Check the ending state determined by window system.

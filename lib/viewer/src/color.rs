@@ -16,6 +16,12 @@ impl Color {
 #[derive(Copy, Clone)]
 pub struct ParticleColor(pub Color);
 
+impl ParticleColor {
+  pub fn new(c: Color) -> Self {
+    Self(c)
+  }
+}
+
 impl Component for ParticleColor {
   type Storage = VecStorage<Self>;
 }

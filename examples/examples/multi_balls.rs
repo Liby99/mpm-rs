@@ -69,7 +69,7 @@ fn main() {
   for b in balls {
     world
       .put_ball(b.center, b.radius, b.mass, b.num_particles)
-      .with(ParticleVelocity(b.velocity))
+      .with(ParticleVelocity::new(b.velocity))
       .with(ParticleDeformation::elastic(youngs_modulus, nu));
   }
 
