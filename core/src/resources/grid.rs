@@ -57,38 +57,6 @@ impl Node {
       boundary: Boundary::None,
     }
   }
-
-  /// Clean the information of the node
-  ///
-  /// Should set everything but `index` and `boundary` to `0`
-  pub fn clean(&mut self) {
-    self.mass = 0.0;
-    self.velocity_temp = Vector3f::zeros();
-    self.velocity = Vector3f::zeros();
-    self.momentum = Vector3f::zeros();
-    self.force = Vector3f::zeros();
-  }
-
-  /// Set the boundary velocity.
-  ///
-  /// Depending on the type of boundary this node possess, the velocity will be set accordingly:
-  ///
-  /// - If the node has type `Boundary::None`, it means this node is not on the boundary, and therefore
-  ///   we do nothing to the velocity
-  /// - If the node has type `Boundary::SetZero`, it means that any point touching this node will get
-  ///   no velocity
-  /// - If the node has type `Boundary::Sliding`, it's velocity along the `normal` will be discarded
-  pub fn set_boundary_velocity(&mut self) {
-    match self.boundary {
-      Boundary::None => {}
-      Boundary::Sticky => {
-        self.velocity = Vector3f::zeros();
-      }
-      Boundary::Sliding { normal } | Boundary::Friction { normal, .. } => {
-        self.velocity -= f32::min(Vector3f::dot(&self.velocity, &normal), 0.0) * normal;
-      }
-    }
-  }
 }
 
 /// The weight iterator type storing essential information traversing
