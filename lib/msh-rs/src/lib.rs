@@ -190,18 +190,14 @@ impl<E: Element> ElemMesh<E> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).map_err(|_| Error::CannotReadFile)?;
 
+    // Current Index
     let mut i = 0;
 
     // Check the header
     check_str(&buffer, &mut i, "$MeshFormat\n")?;
 
-    // Parse version number
-    let mut version_number = Vec::new();
-    while buffer[i] != 0x20 {
-      version_number.push(buffer[i]);
-      i += 1;
-    }
-    check(&buffer, &mut i, 0x20)?; // space after version number
+    // Parse version number (don't need)
+    let _ = load_ascii_u32(&buffer, &mut i, 0x20);
 
     // Parse file type
     check(&buffer, &mut i, 0x31)?; // file type should be '1'

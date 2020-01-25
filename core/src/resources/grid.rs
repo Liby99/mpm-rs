@@ -247,17 +247,16 @@ impl Grid {
     let z = 1.5 - d0;
     let z2 = z * z;
     w.x = 0.5 * z2;
+    dw.x = -z;
 
     let d1 = d0 - 1.0;
     w.y = 0.75 - d1 * d1;
+    dw.y = -2.0 * d1;
 
     let d2 = 1.0 - d1;
     let zz = 1.5 - d2;
     let zz2 = zz * zz;
     w.z = 0.5 * zz2;
-
-    dw.x = -z;
-    dw.y = -2.0 * d1;
     dw.z = zz;
 
     (base_node as i32, w, dw)
