@@ -226,10 +226,7 @@ impl Grid {
   /// to initial `0` values.
   pub fn new(dim: Vector3u, h: f32) -> Self {
     let num_nodes = dim.x * dim.y * dim.z;
-    let mut nodes = Vec::with_capacity(num_nodes);
-    for _ in 0..num_nodes {
-      nodes.push(Node::new());
-    }
+    let nodes = vec![Node::new(); num_nodes];
     Self { h, dim, nodes }
   }
 
