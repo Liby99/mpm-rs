@@ -62,7 +62,7 @@ impl Node {
 /// The weight iterator type storing essential information traversing
 /// the neighboring nodes around a point
 pub struct WeightIterator {
-  h: f32,
+  dx: f32,
   dim: Vector3u,
   base_node: Vector3i,
   curr_node: Vector3i,
@@ -94,9 +94,9 @@ impl Iterator for WeightIterator {
         let wijk = wi * wj * wk;
 
         // Calculate weight gradient
-        let dwijk_dx = self.dwx[i] * wj * wk / self.h;
-        let dwijk_dy = wi * self.dwy[j] * wk / self.h;
-        let dwijk_dz = wi * wj * self.dwz[k] / self.h;
+        let dwijk_dx = self.dwx[i] * wj * wk / self.dx;
+        let dwijk_dy = wi * self.dwy[j] * wk / self.dx;
+        let dwijk_dz = wi * wj * self.dwz[k] / self.dx;
         assert!(
           !dwijk_dx.is_nan() && !dwijk_dy.is_nan() && !dwijk_dz.is_nan(),
           "NaN in Node({}, {}, {})",
@@ -174,7 +174,7 @@ impl Iterator for NodeIndexIterator {
 #[derive(Debug)]
 pub struct Grid {
   /// The distance between each pair of neighbor nodes
-  pub h: f32,
+  pub dx: f32,
 
   /// Dimension vector; the number of nodes along each axis
   pub dim: Vector3u,
@@ -190,17 +190,17 @@ impl Default for Grid {
 }
 
 impl Grid {
-  /// Create a new grid using `dimension` and `h`. All nodes will be initialized
+  /// Create a new grid using `dimension` and `dx`. All nodes will be initialized
   /// to initial `0` values.
-  pub fn new(dim: Vector3u, h: f32) -> Self {
+  pub fn new(dim: Vector3u, dx: f32) -> Self {
     let num_nodes = dim.x * dim.y * dim.z;
     let nodes = vec![Node::new(); num_nodes];
-    Self { h, dim, nodes }
+    Self { dx, dim, nodes }
   }
 
   /// Get the overall size of this grid
   pub fn size(&self) -> Vector3f {
-    Vector3f::new(self.dim.x as f32, self.dim.y as f32, self.dim.z as f32) * self.h
+    Vector3f::new(self.dim.x as f32, self.dim.y as f32, self.dim.z as f32) * self.dx
   }
 
   /// Get the raw index inside the `nodes` array from `Vector3i`
@@ -226,7 +226,7 @@ impl Grid {
   /// Get the node position
   pub fn node_position(&self, node_index: Vector3u) -> Vector3f {
     let v = Vector3f::new(node_index.x as f32, node_index.y as f32, node_index.z as f32);
-    v * self.h
+    v * self.dx
   }
 
   /// Get 1d weight given position. Will normalize `pos` to index space.
@@ -235,7 +235,7 @@ impl Grid {
   /// weight gradients of the three nodes.
   fn get_weight_1d(&self, pos: f32) -> (i32, Vector3f, Vector3f) {
     // `x` is normalized to index space
-    let x = pos / self.h;
+    let x = pos / self.dx;
 
     // get the base node around `x`
     let base_node = (x - 0.5).floor();
@@ -280,12 +280,12 @@ impl Grid {
     let (bnx, wx, dwx) = self.get_weight_1d(pos.x);
     let (bny, wy, dwy) = self.get_weight_1d(pos.y);
     let (bnz, wz, dwz) = self.get_weight_1d(pos.z);
-    let h = self.h;
+    let dx = self.dx;
     let dim = self.dim;
     let base_node = Vector3i::new(bnx, bny, bnz);
     let curr_node = Vector3i::zeros();
     WeightIterator {
-      h,
+      dx,
       dim,
       base_node,
       curr_node,

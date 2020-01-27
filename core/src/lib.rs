@@ -27,15 +27,15 @@ pub struct WorldBuilder<'a, 'b> {
 }
 
 impl<'a, 'b> WorldBuilder<'a, 'b> {
-  pub fn new(size: Vector3f, h: f32) -> Self {
+  pub fn new(size: Vector3f, dx: f32) -> Self {
     use specs::prelude::*;
 
     // First create a grid
-    let x_dim = (size.x / h) as usize;
-    let y_dim = (size.y / h) as usize;
-    let z_dim = (size.z / h) as usize;
+    let x_dim = (size.x / dx) as usize;
+    let y_dim = (size.y / dx) as usize;
+    let z_dim = (size.z / dx) as usize;
     let grid_dim = Vector3u::new(x_dim, y_dim, z_dim);
-    let grid = Grid::new(grid_dim, h);
+    let grid = Grid::new(grid_dim, dx);
 
     // Then create basic builder
     let mut builder = DispatcherBuilder::new();
@@ -171,10 +171,10 @@ impl<'a, 'b> World<'a, 'b> {
     grid.dim
   }
 
-  /// Get the h, the distance between a pair of neighbor node, of the grid
-  pub fn h(&self) -> f32 {
+  /// Get the dx, the distance between a pair of neighbor node, of the grid
+  pub fn dx(&self) -> f32 {
     let grid = self.world.fetch::<Grid>();
-    grid.h
+    grid.dx
   }
 
   /// Get the size of the grid
@@ -201,7 +201,7 @@ impl<'a, 'b> World<'a, 'b> {
   /// As a difference to `put_boundary`, no `None` would be accepted here.
   pub fn put_wrapping_boundary<F: Fn(Wall) -> Boundary>(&mut self, thickness: f32, f: F) {
     let dim = self.dimension();
-    let num_nodes = (thickness / self.h()) as usize;
+    let num_nodes = (thickness / self.dx()) as usize;
     self.put_boundary(|node_index| {
       if node_index.x < num_nodes {
         Some(f(Wall::Left))
