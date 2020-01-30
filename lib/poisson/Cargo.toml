@@ -1,0 +1,12 @@
+[package]
+name = "poisson"
+version = "0.1.0"
+authors = ["Ziyang Li <liby99@seas.upenn.edu>"]
+edition = "2018"
+
+[dependencies]
+nalgebra = "0.19"
+num-traits = "0.2"
+rand = "0.7"
+rand_distr = "0.2"
+lazy_static = "1.4"
