@@ -18,12 +18,12 @@ fn main() {
   let color_2 = Color::new(0.0, 0.0, 1.0);
 
   // Initialize the world, use WindowSystem to visualize
-  let mut world = WorldBuilder::new(world_size, grid_h)
+  let mut world = WorldBuilder::new()
+    .with_size(world_size)
+    .with_dx(grid_h)
+    .with_dt(dt)
     .with_system(WindowSystem::new())
     .build();
-
-  // Set parameters
-  world.set_dt(dt);
 
   // Put the boundary
   world.put_friction_boundary(boundary_thickness, boundary_fric_mu);

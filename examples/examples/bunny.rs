@@ -33,12 +33,12 @@ fn main() {
   std::fs::create_dir_all(outdir).unwrap();
 
   // Initialize the world
-  let mut world = WorldBuilder::new(world_size, grid_h)
+  let mut world = WorldBuilder::new()
+    .with_size(world_size)
+    .with_dx(grid_h)
+    .with_dt(dt)
     .with_system(PlyDumpSystem::new(outdir, dump_skip))
     .build();
-
-  // Set parameters
-  world.set_dt(dt);
 
   // Put the boundary
   world.put_friction_boundary(boundary_thickness, boundary_fric_mu);

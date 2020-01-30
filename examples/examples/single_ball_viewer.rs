@@ -14,12 +14,12 @@ fn main() {
   let num_particles = 10000;
 
   // Initialize the world, use WindowSystem to visualize
-  let mut world = WorldBuilder::new(world_size, grid_h)
+  let mut world = WorldBuilder::new()
+    .with_size(world_size)
+    .with_dx(grid_h)
+    .with_dt(dt)
     .with_system(WindowSystem::new())
     .build();
-
-  // Set parameters
-  world.set_dt(dt);
 
   // Put the boundary
   world.put_sticky_boundary(boundary_thickness);

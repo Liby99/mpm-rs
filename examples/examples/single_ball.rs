@@ -1,3 +1,5 @@
+extern crate nalgebra as na;
+
 use mpm_ply_dump::*;
 use mpm_rs::*;
 use pbr::ProgressBar;
@@ -15,26 +17,31 @@ fn main() {
   let center = Vector3f::new(0.5, 0.4, 0.5);
   let radius = 0.1;
   let mass = 10.0;
-  let num_particles = 10000;
 
   // Create output directory
   std::fs::create_dir_all(outdir).unwrap();
 
   // Initialize the world, use PlyDumpSystem to output ply to `outdir`
-  let mut world = WorldBuilder::new(world_size, grid_h)
+  let mut world = WorldBuilder::new()
+    .with_size(world_size)
+    .with_dx(grid_h)
+    .with_dt(dt)
     .with_system(PlyDumpSystem::new(outdir, dump_skip))
     .build();
-
-  // Set parameters
-  world.set_dt(dt);
 
   // Put the boundary
   world.put_sticky_boundary(boundary_thickness);
 
   // Put the ball
-  world
-    .put_ball(center, radius, mass, num_particles)
-    .with(ParticleDeformation::elastic(youngs_modulus, nu));
+  {
+    let ball = Sphere::new(radius);
+    let transf = Translation3f::from(center);
+    world
+      .put_region(ball, na::convert(transf), mass)
+      .with(ParticleDeformation::elastic(youngs_modulus, nu));
+  }
+
+  println!("Num Particles: {}", world.num_particles());
 
   // Generate progressbar and let it run
   let mut pb = ProgressBar::new(cycles);

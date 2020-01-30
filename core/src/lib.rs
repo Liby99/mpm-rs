@@ -1,6 +1,7 @@
 extern crate msh_rs;
 extern crate nalgebra as na;
 extern crate rand;
+extern crate rand_distr;
 extern crate rayon;
 extern crate specs;
 
@@ -22,20 +23,16 @@ type SpecsWorld = specs::prelude::World;
 pub type Particle = specs::prelude::Entity;
 
 pub struct WorldBuilder<'a, 'b> {
-  grid: Grid,
+  grid_size: Vector3f,
+  grid_dx: f32,
+  particle_density: f32,
+  dt: f32,
   builder: DispatcherBuilder<'a, 'b>,
 }
 
 impl<'a, 'b> WorldBuilder<'a, 'b> {
-  pub fn new(size: Vector3f, dx: f32) -> Self {
+  pub fn new() -> Self {
     use specs::prelude::*;
-
-    // First create a grid
-    let x_dim = (size.x / dx) as usize;
-    let y_dim = (size.y / dx) as usize;
-    let z_dim = (size.z / dx) as usize;
-    let grid_dim = Vector3u::new(x_dim, y_dim, z_dim);
-    let grid = Grid::new(grid_dim, dx);
 
     // Then create basic builder
     let mut builder = DispatcherBuilder::new();
@@ -53,7 +50,33 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
     builder.add(EvolveDeformationSystem, "evolve_deformation", &["grid_set_boundary"]);
     builder.add(G2PSystem, "g2p", &["grid_set_boundary"]);
 
-    Self { grid, builder }
+    Self {
+      grid_size: Vector3f::new(1.0, 1.0, 1.0),
+      grid_dx: 0.02,
+      particle_density: 2.0,
+      dt: 0.001,
+      builder: builder,
+    }
+  }
+
+  pub fn with_size(mut self, size: Vector3f) -> Self {
+    self.grid_size = size;
+    self
+  }
+
+  pub fn with_dx(mut self, dx: f32) -> Self {
+    self.grid_dx = dx;
+    self
+  }
+
+  pub fn with_density(mut self, density: f32) -> Self {
+    self.particle_density = density;
+    self
+  }
+
+  pub fn with_dt(mut self, dt: f32) -> Self {
+    self.dt = dt;
+    self
   }
 
   pub fn with_system<T: for<'c> specs::RunNow<'c> + 'b>(mut self, system: T) -> Self {
@@ -62,12 +85,28 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
   }
 
   pub fn build(self) -> World<'a, 'b> {
+
+    // First create a grid
+    let x_dim = (self.grid_size.x / self.grid_dx) as usize;
+    let y_dim = (self.grid_size.y / self.grid_dx) as usize;
+    let z_dim = (self.grid_size.z / self.grid_dx) as usize;
+    let grid_dim = Vector3u::new(x_dim, y_dim, z_dim);
+    let grid = Grid::new(grid_dim, self.grid_dx);
+
+    // Then generate the world & dispatcher
     use specs::prelude::WorldExt;
     let mut world = specs::prelude::World::new();
     let mut dispatcher = self.builder.build();
     dispatcher.setup(&mut world);
-    *world.fetch_mut::<Grid>() = self.grid;
-    World { dispatcher, world }
+
+    // Set the world's grid to be grid
+    *world.fetch_mut::<Grid>() = grid;
+
+    // Set the world's Delta Time
+    world.fetch_mut::<DeltaTime>().set(self.dt);
+
+    // Return the world
+    World { dispatcher, world, particle_density: self.particle_density }
   }
 }
 
@@ -77,6 +116,10 @@ pub struct ParticlesHandle<'w, 'a, 'b> {
 }
 
 impl<'w, 'a, 'b> ParticlesHandle<'w, 'a, 'b> {
+  pub fn first(self) -> Particle {
+    self.entities[0]
+  }
+
   pub fn with<T: specs::prelude::Component + Clone>(self, c: T) -> Self {
     for &ent in &self.entities {
       self.world.insert(ent, c.clone());
@@ -105,6 +148,7 @@ impl<'w, 'a, 'b> ParticlesHandle<'w, 'a, 'b> {
 
 pub struct World<'a, 'b> {
   pub world: SpecsWorld,
+  pub particle_density: f32,
   dispatcher: specs::Dispatcher<'a, 'b>,
 }
 
@@ -291,7 +335,7 @@ impl<'a, 'b> World<'a, 'b> {
     for _ in 0..n {
       let pos = random_point_in_cube(min, max);
       let hdl = self.put_particle(pos, ind_mass).with(ParticleVolume(ind_volume));
-      entities.push(hdl.entities[0]);
+      entities.push(hdl.first());
     }
 
     // Return the handle
@@ -327,18 +371,52 @@ impl<'a, 'b> World<'a, 'b> {
       if num_pars_usize == 0 {
         let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
         let hdl = self.put_particle(pos, mass).with(ParticleVolume::new(volume));
-        entities.push(hdl.entities[0])
+        entities.push(hdl.first())
       } else {
         let par_volume = volume / num_pars;
         for _ in 0..num_pars_usize {
           let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
           let hdl = self.put_particle(pos, par_mass).with(ParticleVolume::new(par_volume));
-          entities.push(hdl.entities[0]);
+          entities.push(hdl.first());
         }
       }
     }
 
     // Return the handle
+    ParticlesHandle { world: self, entities }
+  }
+
+  pub fn put_region<'w, R: Region>(
+    &'w mut self,
+    reg: R,
+    transf: Similarity3f,
+    mass: f32
+  ) -> ParticlesHandle<'w, 'a, 'b> {
+    let mut entities = vec![];
+    let radius = self.dx() / self.particle_density;
+    let size = self.size();
+    let inv_transf = transf.inverse();
+    for i in 0..size.x as usize {
+      for j in 0..size.y as usize {
+        for k in 0..size.z as usize {
+          let offset = Vector3f::new(i as f32, j as f32, k as f32);
+          for point in PoissonDisk::new(radius, PoissonType::Perioditic) {
+            let vpos = offset + point;
+            let ppos = Point3f::new(vpos.x, vpos.y, vpos.z);
+            let reg_ppos = inv_transf * ppos;
+            if reg.contains(reg_ppos) {
+              let hdl = self.put_particle(vpos, 0.0).with(ParticleVolume::new(radius.powi(3)));
+              entities.push(hdl.first());
+            }
+          }
+        }
+      }
+    }
+    let num_particles = entities.len() as f32;
+    let ind_mass = mass / num_particles;
+    for &ent in &entities {
+      self.insert(ent, ParticleMass::new(ind_mass));
+    }
     ParticlesHandle { world: self, entities }
   }
 }
