@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 
-use poisson::*;
 use na::*;
+use poisson::*;
 
 type Vector2f = Vector2<f32>;
 

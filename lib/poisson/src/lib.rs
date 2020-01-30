@@ -238,7 +238,7 @@ where
   }
 
   fn cell_hd_idx(&self, v: &VectorN<N, D>) -> Option<VectorN<usize, D>> {
-    let idx : VectorN<i64, D> = v.map(|x| NumCast::from(x / self.grid_dx).unwrap());
+    let idx: VectorN<i64, D> = v.map(|x| NumCast::from(x / self.grid_dx).unwrap());
     if (0..dim::<D>()).all(|i| 0 <= idx[i] && idx[i] < (self.grid_dim[i] as i64)) {
       Some(idx.map(|i| i as usize))
     } else {
