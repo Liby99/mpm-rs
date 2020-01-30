@@ -5,14 +5,14 @@ extern crate rand_distr;
 #[macro_use]
 extern crate lazy_static;
 
-mod utils;
-
 use na::{allocator::*, *};
 use num_traits::{Float, NumCast};
 use rand::prelude::*;
 use rand_distr::*;
 
-use utils::*;
+fn dim<D: Dim>() -> usize {
+  D::try_to_usize().unwrap()
+}
 
 pub struct Sampler<N: RealField + Float, D: Dim + DimName>
 where
@@ -51,7 +51,7 @@ where
 
   /// Let the sampler fill the space with a given minimum gap `r` between each
   /// pair of neighbors
-  pub fn with_r(mut self, r: N) -> Self {
+  pub fn with_radius(mut self, r: N) -> Self {
     self.r = r;
     self
   }
@@ -220,7 +220,7 @@ where
     self.active_samples.push(start.clone());
 
     // Put this into grid cells
-    let idx = self.cell_idx(&start);
+    let idx = self.cell_idx(&start).unwrap();
     self.grid_cells[idx] = Some(start);
 
     // Return self
@@ -233,12 +233,17 @@ where
       .all(|(x, s)| N::from(0).unwrap() <= x && x < s)
   }
 
-  fn cell_idx(&self, v: &VectorN<N, D>) -> usize {
-    self.cell_idx_from_hd_idx(&self.cell_hd_idx(v))
+  fn cell_idx(&self, v: &VectorN<N, D>) -> Option<usize> {
+    self.cell_hd_idx(v).map(|idx| self.cell_idx_from_hd_idx(&idx))
   }
 
-  fn cell_hd_idx(&self, v: &VectorN<N, D>) -> VectorN<usize, D> {
-    v.map(|x| NumCast::from(x / self.grid_dx).unwrap())
+  fn cell_hd_idx(&self, v: &VectorN<N, D>) -> Option<VectorN<usize, D>> {
+    let idx : VectorN<i64, D> = v.map(|x| NumCast::from(x / self.grid_dx).unwrap());
+    if (0..dim::<D>()).all(|i| 0 <= idx[i] && idx[i] < (self.grid_dim[i] as i64)) {
+      Some(idx.map(|i| i as usize))
+    } else {
+      None
+    }
   }
 
   fn cell_idx_from_hd_idx(&self, v: &VectorN<usize, D>) -> usize {
@@ -266,30 +271,37 @@ where
     }
   }
 
-  fn neighbor_indices(&self, point: &VectorN<N, D>) -> NeighborIterator<D> {
-    NeighborIterator::new(&self.grid_dim.clone(), &self.cell_hd_idx(&point))
+  fn neighbor_indices(&self, index: &VectorN<usize, D>) -> NeighborIterator<D> {
+    NeighborIterator::new(&self.grid_dim.clone(), index)
   }
 
   fn is_disk_free(&self, point: &VectorN<N, D>) -> bool {
-    let sq_radius = Float::powi(self.r, 2);
-    self.neighbor_indices(point).all(|hd_idx| {
-      let idx = self.cell_idx_from_hd_idx(&hd_idx);
-      if let Some(other_point) = &self.grid_cells[idx] {
-        let diff = other_point - point;
-        let sq_mag = diff.magnitude_squared();
-        sq_radius < sq_mag
-      } else {
-        true
-      }
-    })
+    if let Some(hd_idx) = self.cell_hd_idx(point) {
+      let sq_radius = Float::powi(self.r, 2);
+      self.neighbor_indices(&hd_idx).all(|hd_idx| {
+        let idx = self.cell_idx_from_hd_idx(&hd_idx);
+        if let Some(other_point) = &self.grid_cells[idx] {
+          let diff = other_point - point;
+          let sq_mag = diff.magnitude_squared();
+          sq_radius < sq_mag
+        } else {
+          true
+        }
+      })
+    } else {
+      false
+    }
   }
 
   fn insert_if_valid(&mut self, point: &VectorN<N, D>) -> bool {
     if self.is_disk_free(point) {
-      let idx = self.cell_idx(point);
-      self.active_samples.push(point.clone());
-      self.grid_cells[idx] = Some(point.clone());
-      true
+      if let Some(idx) = self.cell_idx(point) {
+        self.active_samples.push(point.clone());
+        self.grid_cells[idx] = Some(point.clone());
+        true
+      } else {
+        false
+      }
     } else {
       false
     }

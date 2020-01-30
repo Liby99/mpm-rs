@@ -10,3 +10,6 @@ num-traits = "0.2"
 rand = "0.7"
 rand_distr = "0.2"
 lazy_static = "1.4"
+
+[dev-dependencies]
+clap = "2"
