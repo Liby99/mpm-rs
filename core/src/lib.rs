@@ -4,6 +4,7 @@ extern crate rand;
 extern crate rand_distr;
 extern crate rayon;
 extern crate specs;
+extern crate poisson;
 
 pub mod components;
 pub mod resources;
@@ -85,7 +86,6 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
   }
 
   pub fn build(self) -> World<'a, 'b> {
-
     // First create a grid
     let x_dim = (self.grid_size.x / self.grid_dx) as usize;
     let y_dim = (self.grid_size.y / self.grid_dx) as usize;
@@ -106,7 +106,11 @@ impl<'a, 'b> WorldBuilder<'a, 'b> {
     world.fetch_mut::<DeltaTime>().set(self.dt);
 
     // Return the world
-    World { dispatcher, world, particle_density: self.particle_density }
+    World {
+      dispatcher,
+      world,
+      particle_density: self.particle_density,
+    }
   }
 }
 
@@ -390,26 +394,18 @@ impl<'a, 'b> World<'a, 'b> {
     &'w mut self,
     reg: R,
     transf: Similarity3f,
-    mass: f32
+    mass: f32,
   ) -> ParticlesHandle<'w, 'a, 'b> {
     let mut entities = vec![];
     let radius = self.dx() / self.particle_density;
     let size = self.size();
     let inv_transf = transf.inverse();
-    for i in 0..size.x as usize {
-      for j in 0..size.y as usize {
-        for k in 0..size.z as usize {
-          let offset = Vector3f::new(i as f32, j as f32, k as f32);
-          for point in PoissonDisk::new(radius, PoissonType::Perioditic) {
-            let vpos = offset + point;
-            let ppos = Point3f::new(vpos.x, vpos.y, vpos.z);
-            let reg_ppos = inv_transf * ppos;
-            if reg.contains(reg_ppos) {
-              let hdl = self.put_particle(vpos, 0.0).with(ParticleVolume::new(radius.powi(3)));
-              entities.push(hdl.first());
-            }
-          }
-        }
+    for point in poisson::Sampler3f::new().with_size(size).with_radius(radius).generate() {
+      let ppos = Point3f::new(point.x, point.y, point.z);
+      let reg_ppos = inv_transf * ppos;
+      if reg.contains(reg_ppos) {
+        let hdl = self.put_particle(point, 0.0).with(ParticleVolume::new(radius.powi(3)));
+        entities.push(hdl.first());
       }
     }
     let num_particles = entities.len() as f32;

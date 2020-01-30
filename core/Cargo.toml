@@ -11,3 +11,4 @@ rand = "0.7.2"
 rayon = "1.2"
 rand_distr = "0.2"
 msh-rs = { path = "../lib/msh-rs" }
+poisson = { path = "../lib/poisson" }

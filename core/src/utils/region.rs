@@ -1,7 +1,7 @@
 use msh_rs::*;
-use std::hash::Hash;
 use std::cmp::Eq;
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 use super::*;
 
@@ -69,7 +69,11 @@ impl<T: Hash + Eq + Clone> SpatialHashTable<T> {
 
   fn hash(&self, point: Point3f) -> SpatialHashTableIndex {
     let p = point.to_homogeneous();
-    ((p.x / self.dx) as usize, (p.y / self.dx) as usize, (p.z / self.dx) as usize)
+    (
+      (p.x / self.dx) as usize,
+      (p.y / self.dx) as usize,
+      (p.z / self.dx) as usize,
+    )
   }
 
   pub fn put(&mut self, point: Point3f, item: T) {
@@ -103,7 +107,6 @@ pub struct TetMesh {
 
 impl TetMesh {
   pub fn new(mesh: TetrahedronMesh) -> Self {
-
     // First get the dx: divide the largest axis into 50 parts
     let (mut min, mut max) = (Vector3f::zeros(), Vector3f::zeros());
     for node in &mesh.nodes {
@@ -111,7 +114,7 @@ impl TetMesh {
       min = Self::component_min(&p.coords, &min);
       max = Self::component_max(&p.coords, &max);
     }
-    let dx = Self::max(&(max - min)) / 50.0;
+    let dx = (max - min).argmax().1 / 50.0;
 
     // Then construct the spatial hash table
     let mut sht = SpatialHashTable::new(dx);
@@ -134,10 +137,6 @@ impl TetMesh {
 
   fn component_min(v1: &Vector3f, v2: &Vector3f) -> Vector3f {
     Vector3f::new(v1.x.min(v2.x), v1.y.min(v2.y), v1.z.min(v2.z))
-  }
-
-  fn max(v: &Vector3f) -> f32 {
-    f32::max(v.x, f32::max(v.y, v.z))
   }
 
   fn point_of_node(node: &Node) -> Point3f {
