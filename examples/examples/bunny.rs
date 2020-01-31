@@ -1,66 +1,35 @@
-use mpm_ply_dump::PlyDumpSystem;
 use mpm_rs::*;
+use mpm_examples::*;
 use msh_rs::*;
 use nalgebra as na;
-use pbr::ProgressBar;
-use std::time::SystemTime;
 
 fn main() {
-  let start = SystemTime::now();
+  run_example(
+    Config {
+      output_directory: "result/bunny",
+      num_cycles: 5000,
+      dump_skip: 20,
+      world_dt: 0.001,
+      ..Default::default()
+    },
+    |world| {
 
-  // Parameters
-  let bunny_file = "res/bunny.msh";
-  let outdir = "result/bunny";
-  let cycles = 5000;
-  let dump_skip = 20;
-  let dt = 0.0005;
-  let world_size = Vector3f::new(1.0, 1.0, 1.0);
-  let grid_h = 0.02;
-  let youngs_modulus = 150000.0;
-  let nu = 0.3;
-  let boundary_thickness = 0.04;
-  let boundary_fric_mu = 1.4;
-  let mass = 20.0;
-  let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
-  let translation = na::Translation3::from(Vector3f::new(0.5, 0.3, 0.5));
-  let rotation = na::UnitQuaternion::identity();
-  let scale = 3.0;
-  let transf = na::Similarity3::from_parts(translation, rotation, scale);
-  let hide_random_portion = 0.9;
+      // Put the boundary
+      world.put_friction_boundary(0.04, 1.4);
 
-  // Create output directory
-  std::fs::create_dir_all(outdir).unwrap();
+      // Put the bunny
+      let bunny = TetrahedronMesh::load("res/bunny.msh").unwrap();
+      let translation = na::Translation3::from(Vector3f::new(0.5, 0.3, 0.5));
+      let rotation = na::UnitQuaternion::identity();
+      let scale = 3.0;
+      let transf = na::Similarity3::from_parts(translation, rotation, scale);
+      world
+        .put_tetra_mesh(&bunny, na::convert(transf), 20.0)
+        .with(ParticleVelocity::new(Vector3f::new(-3.0, 1.0, -8.0)))
+        .with(ParticleDeformation::elastic(150000.0, 0.3));
 
-  // Initialize the world
-  let mut world = WorldBuilder::new()
-    .with_size(world_size)
-    .with_dx(grid_h)
-    .with_dt(dt)
-    .with_system(PlyDumpSystem::new(outdir, dump_skip))
-    .build();
-
-  // Put the boundary
-  world.put_friction_boundary(boundary_thickness, boundary_fric_mu);
-
-  // Put the bunny
-  let bunny = TetrahedronMesh::load(bunny_file).unwrap();
-  world
-    .put_tetra_mesh(&bunny, na::convert(transf), mass)
-    .with(ParticleVelocity::new(bunny_velocity))
-    .with(ParticleDeformation::elastic(youngs_modulus, nu));
-
-  // Make the world only show a portion
-  world.hide_random_portion(hide_random_portion);
-
-  // Generate progressbar and let it run
-  let mut pb = ProgressBar::new(cycles);
-  for _ in 0..cycles {
-    pb.inc();
-    world.step();
-  }
-
-  // Print finish
-  let secs_elapsed = start.elapsed().unwrap().as_secs();
-  let finish = format!("Finished {} cycles in {} secs", cycles, secs_elapsed);
-  pb.finish_print(finish.as_str());
+      // Make the world only show a portion
+      world.hide_random_portion(0.9);
+    }
+  )
 }

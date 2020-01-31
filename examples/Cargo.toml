@@ -11,3 +11,4 @@ mpm-rs = { path = "../core" }
 msh-rs = { path = "../lib/msh-rs" }
 mpm-ply-dump = { path = "../lib/ply-dump" }
 mpm-viewer = { path = "../lib/viewer" }
+clap = "2"
