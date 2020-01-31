@@ -124,7 +124,7 @@ impl<'w, 'a, 'b> ParticlesHandle<'w, 'a, 'b> {
     self.entities[0]
   }
 
-  pub fn with<T: specs::prelude::Component + Clone>(self, c: T) -> Self {
+  pub fn with<T: specs::prelude::Component + Clone + Send + Sync>(self, c: T) -> Self {
     for &ent in &self.entities {
       self.world.insert(ent, c.clone());
     }
@@ -200,17 +200,19 @@ impl<'a, 'b> World<'a, 'b> {
   }
 
   /// Insert (will override if already presented) a component to a given particle
-  pub fn insert<T: specs::prelude::Component>(&mut self, p: Particle, c: T) {
+  pub fn insert<T: specs::prelude::Component + Send + Sync>(&mut self, p: Particle, c: T) {
     use specs::prelude::*;
-    let mut store: WriteStorage<T> = self.world.system_data();
-    store.insert(p, c).unwrap();
+    if let Some(mut store) = self.world.try_fetch_mut::<WriteStorage<T>>() {
+      store.insert(p, c).unwrap();
+    }
   }
 
   /// Remove a component of a given particle
-  pub fn remove<T: specs::prelude::Component>(&mut self, p: Particle) {
+  pub fn remove<T: specs::prelude::Component + Send + Sync>(&mut self, p: Particle) {
     use specs::prelude::*;
-    let mut store: WriteStorage<T> = self.world.system_data();
-    store.remove(p);
+    if let Some(mut store) = self.world.try_fetch_mut::<WriteStorage<T>>() {
+      store.remove(p);
+    }
   }
 
   /// Get the dimension of nodes of the grid
