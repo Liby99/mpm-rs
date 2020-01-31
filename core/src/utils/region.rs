@@ -102,7 +102,11 @@ impl<T: Hash + Eq + Clone> SpatialHashTable<T> {
     for i in min.0..=max.0 {
       for j in min.1..=max.1 {
         for k in min.2..=max.2 {
-          self.table.entry((i, j, k)).or_insert(HashSet::new()).insert(item.clone());
+          self
+            .table
+            .entry((i, j, k))
+            .or_insert(HashSet::new())
+            .insert(item.clone());
         }
       }
     }

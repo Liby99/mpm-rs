@@ -1,24 +1,26 @@
-pub type Vector3f = na::Vector3<f32>;
+use na::{allocator::*, *};
 
-pub type Vector3i = na::Vector3<i32>;
+pub type Vector3f = Vector3<f32>;
 
-pub type Vector3u = na::Vector3<usize>;
+pub type Vector3i = Vector3<i32>;
 
-pub type Point3f = na::Point3<f32>;
+pub type Vector3u = Vector3<usize>;
 
-pub type Matrix3f = na::Matrix3<f32>;
+pub type Point3f = Point3<f32>;
 
-pub type Quaternionf = na::Quaternion<f32>;
+pub type Matrix3f = Matrix3<f32>;
 
-pub type Translation3f = na::Translation3<f32>;
+pub type Quaternionf = Quaternion<f32>;
 
-pub type Rotation3f = na::Rotation3<f32>;
+pub type Translation3f = Translation3<f32>;
 
-pub type Isometry3f = na::Isometry3<f32>;
+pub type Rotation3f = Rotation3<f32>;
 
-pub type Similarity3f = na::Similarity3<f32>;
+pub type Isometry3f = Isometry3<f32>;
 
-pub type Transform3f = na::Transform3<f32>;
+pub type Similarity3f = Similarity3<f32>;
+
+pub type Transform3f = Transform3<f32>;
 
 pub struct Math;
 
@@ -27,11 +29,27 @@ impl Math {
     f32::min(f32::max(n, low), up)
   }
 
-  pub fn component_min(v1: &Vector3f, v2: &Vector3f) -> Vector3f {
+  pub fn clamp_vec<D>(v: &VectorN<f32, D>, low: f32, up: f32) -> VectorN<f32, D>
+  where
+    D: Dim + DimName,
+    DefaultAllocator: Allocator<f32, D>,
+  {
+    v.map(|x| Self::clamp(x, low, up))
+  }
+
+  pub fn component_min<D>(v1: &VectorN<f32, D>, v2: &VectorN<f32, D>) -> VectorN<f32, D>
+  where
+    D: Dim + DimName,
+    DefaultAllocator: Allocator<f32, D>,
+  {
     v1.zip_map(v2, |x1, x2| x1.min(x2))
   }
 
-  pub fn component_max(v1: &Vector3f, v2: &Vector3f) -> Vector3f {
+  pub fn component_max<D>(v1: &VectorN<f32, D>, v2: &VectorN<f32, D>) -> VectorN<f32, D>
+  where
+    D: Dim + DimName,
+    DefaultAllocator: Allocator<f32, D>,
+  {
     v1.zip_map(v2, |x1, x2| x1.max(x2))
   }
 

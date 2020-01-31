@@ -6,16 +6,6 @@ use crate::utils::*;
 
 pub struct EvolveDeformationSystem;
 
-impl EvolveDeformationSystem {
-  fn clamp_sigma(sigma: Vector3f, low: f32, up: f32) -> Vector3f {
-    Vector3f::new(
-      Math::clamp(sigma.x, low, up),
-      Math::clamp(sigma.y, low, up),
-      Math::clamp(sigma.z, low, up),
-    )
-  }
-}
-
 impl<'a> System<'a> for EvolveDeformationSystem {
   type SystemData = (
     Read<'a, DeltaTime>,
@@ -43,7 +33,7 @@ impl<'a> System<'a> for EvolveDeformationSystem {
         (Some(u), Some(v_t)) => {
           // Clamp out values in sigma
           let sigma_hat = svd.singular_values;
-          let sigma = Self::clamp_sigma(sigma_hat, 1.0 - def.theta_c, 1.0 + def.theta_s);
+          let sigma = Math::clamp_vec(&sigma_hat, 1.0 - def.theta_c, 1.0 + def.theta_s);
           let sigma_inv = Vector3f::new(1.0 / sigma.x, 1.0 / sigma.y, 1.0 / sigma.z);
 
           // New $F_{E_p}$
