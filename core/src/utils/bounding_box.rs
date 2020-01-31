@@ -36,4 +36,10 @@ impl BoundingBox {
       max: Math::point_of_vector(&(rot_max * transf.scaling() + transl)),
     }
   }
+
+  pub fn gen_poisson_samples(&self, radius: f32) -> impl Iterator<Item = Vector3f> {
+    let min_vec = Math::vector_of_point(&self.min);
+    let sampler = poisson::Sampler3f::new().with_size(self.size()).with_radius(radius);
+    sampler.generate().map(move |sample| sample + min_vec)
+  }
 }

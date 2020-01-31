@@ -4,7 +4,7 @@ use super::*;
 
 pub trait Region {
   /// Returns whether the region contains the given point
-  fn contains(&self, point: Point3f) -> bool;
+  fn contains(&self, point: &Point3f) -> bool;
 
   /// Returns the axis-aligned bounding box of the region
   fn bound(&self) -> BoundingBox;
@@ -26,7 +26,7 @@ impl Cube {
 }
 
 impl Region for Cube {
-  fn contains(&self, point: Point3f) -> bool {
+  fn contains(&self, point: &Point3f) -> bool {
     let p = point.coords;
     let x_contains = p.x.abs() < self.half_size.x;
     let y_contains = p.y.abs() < self.half_size.y;
@@ -51,7 +51,7 @@ impl Sphere {
 }
 
 impl Region for Sphere {
-  fn contains(&self, point: Point3f) -> bool {
+  fn contains(&self, point: &Point3f) -> bool {
     let dist = point.coords.magnitude();
     dist < self.radius
   }
@@ -69,19 +69,29 @@ pub struct TetMesh {
 
 struct Tetra {
   p1: Point3f,
-  d1: Vector3f,
-  d2: Vector3f,
-  d3: Vector3f,
+  p2: Point3f,
+  p3: Point3f,
+  p4: Point3f,
 }
 
 impl Tetra {
   fn new(p1: Point3f, p2: Point3f, p3: Point3f, p4: Point3f) -> Self {
-    Self {
-      p1,
-      d1: p2 - p1,
-      d2: p3 - p1,
-      d3: p4 - p1,
-    }
+    Self { p1, p2, p3, p4 }
+  }
+
+  fn same_side(p1: &Point3f, p2: &Point3f, p3: &Point3f, p4: &Point3f, p: &Point3f) -> bool {
+    let normal = (p2 - p1).cross(&(p3 - p1));
+    let dot_p4 = normal.dot(&(p4 - p1));
+    let dot_p = normal.dot(&Math::vector_of_point(p));
+    dot_p.is_sign_positive() == dot_p4.is_sign_positive()
+  }
+
+  fn contains(&self, point: &Point3f) -> bool {
+    let ss1 = Self::same_side(&self.p1, &self.p2, &self.p3, &self.p4, point);
+    let ss2 = Self::same_side(&self.p2, &self.p3, &self.p4, &self.p1, point);
+    let ss3 = Self::same_side(&self.p3, &self.p4, &self.p1, &self.p2, point);
+    let ss4 = Self::same_side(&self.p4, &self.p1, &self.p2, &self.p3, point);
+    ss1 && ss2 && ss3 && ss4
   }
 }
 
@@ -122,18 +132,12 @@ impl TetMesh {
   fn vector_of_node(node: &Node) -> Vector3f {
     Vector3f::new(node.x as f32, node.y as f32, node.y as f32)
   }
-
-  fn in_tetra(&self, point: Point3f, tetra: &Tetra) -> bool {
-    let d = point - tetra.p1;
-    let (a, b, c) = (d.dot(&tetra.d1), d.dot(&tetra.d2), d.dot(&tetra.d3));
-    a > 0.0 && b > 0.0 && c > 0.0 && a + b + c < 1.0
-  }
 }
 
 impl Region for TetMesh {
-  fn contains(&self, point: Point3f) -> bool {
+  fn contains(&self, point: &Point3f) -> bool {
     for tetra in &self.tetras {
-      if self.in_tetra(point, &tetra) {
+      if tetra.contains(point) {
         return true;
       }
     }

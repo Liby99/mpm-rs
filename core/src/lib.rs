@@ -303,12 +303,55 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
+  /// Put a given region into the world with a transformation and a mass. The particles will be
+  /// poisson sampled.
+  pub fn put_region<'w, R>(&'w mut self, reg: R, transf: Similarity3f, mass: f32) -> ParticlesHandle<'w, 'a, 'b>
+  where
+    R: Region,
+  {
+    let mut entities = vec![];
+
+    // Cache important data
+    let radius = self.dx() / self.particle_density;
+    let inv_transf = transf.inverse();
+
+    // Get the bound transformed to the final position that the
+    // object is going to be at
+    let bb = reg.bound().transform(&transf);
+
+    // Use that bounding box to generate poisson samples. The `sample`
+    // here is at the world space
+    for sample in bb.gen_poisson_samples(radius) {
+      // Use inverse transform to get the sample in object local space
+      let reg_ppos = inv_transf * Math::point_of_vector(&sample);
+
+      // Check if the region contains the local space point, if is, then
+      // add the world space position to the world
+      if reg.contains(&reg_ppos) {
+        let hdl = self.put_particle(sample, 0.0).with(ParticleVolume::new(radius.powi(3)));
+        entities.push(hdl.first());
+      }
+    }
+
+    // Finally calculate the mass being distributed to each particle
+    let num_particles = entities.len() as f32;
+    let ind_mass = mass / num_particles;
+    for &ent in &entities {
+      self.insert(ent, ParticleMass::new(ind_mass));
+    }
+
+    // Return the handle
+    ParticlesHandle { world: self, entities }
+  }
+
+  /// A shortcut function adding a ball to the world
   pub fn put_ball<'w>(&'w mut self, center: Vector3f, radius: f32, mass: f32) -> ParticlesHandle<'w, 'a, 'b> {
     let reg = Sphere::new(radius);
     let translation = Translation3f::from(center);
     self.put_region(reg, na::convert(translation), mass)
   }
 
+  /// A shortcut function adding a axis-aligned cube into the world
   pub fn put_cube<'w>(&'w mut self, min: Vector3f, max: Vector3f, mass: f32) -> ParticlesHandle<'w, 'a, 'b> {
     let size = max - min;
     let pos = min + size / 2.0;
@@ -317,41 +360,14 @@ impl<'a, 'b> World<'a, 'b> {
     self.put_region(reg, na::convert(translation), mass)
   }
 
+  /// A shortcut function adding a tetrahedron mesh into the world
   pub fn put_tetra_mesh<'w>(
     &'w mut self,
     mesh: &TetrahedronMesh,
     transf: Similarity3f,
-    mass: f32
+    mass: f32,
   ) -> ParticlesHandle<'w, 'a, 'b> {
     let reg = TetMesh::new(mesh);
     self.put_region(reg, transf, mass)
-  }
-
-  pub fn put_region<'w, R>(
-    &'w mut self,
-    reg: R,
-    transf: Similarity3f,
-    mass: f32,
-  ) -> ParticlesHandle<'w, 'a, 'b> where R: Region {
-    let mut entities = vec![];
-    let radius = self.dx() / self.particle_density;
-    let inv_transf = transf.inverse();
-    let bb = reg.bound().transform(&transf);
-    let sampler = poisson::Sampler3f::new().with_size(bb.size()).with_radius(radius);
-    for sample in sampler.generate() {
-      let ppos = bb.min + sample;
-      let vpos = Math::vector_of_point(&ppos);
-      let reg_ppos = inv_transf * ppos;
-      if reg.contains(reg_ppos) {
-        let hdl = self.put_particle(vpos, 0.0).with(ParticleVolume::new(radius.powi(3)));
-        entities.push(hdl.first());
-      }
-    }
-    let num_particles = entities.len() as f32;
-    let ind_mass = mass / num_particles;
-    for &ent in &entities {
-      self.insert(ent, ParticleMass::new(ind_mass));
-    }
-    ParticlesHandle { world: self, entities }
   }
 }
