@@ -87,9 +87,25 @@ impl<T: Hash + Eq + Clone> SpatialHashTable<T> {
     )
   }
 
-  pub fn put(&mut self, point: Point3f, item: T) {
-    let idx = self.hash(point);
-    self.table.entry(idx).or_insert(HashSet::new()).insert(item);
+  fn comp_min(i1: SpatialHashTableIndex, i2: SpatialHashTableIndex) -> SpatialHashTableIndex {
+    (i1.0.min(i2.0), i1.1.min(i2.1), i1.2.min(i2.2))
+  }
+
+  fn comp_max(i1: SpatialHashTableIndex, i2: SpatialHashTableIndex) -> SpatialHashTableIndex {
+    (i1.0.max(i2.0), i1.1.max(i2.1), i1.2.max(i2.2))
+  }
+
+  fn put_tetra(&mut self, p1: Point3f, p2: Point3f, p3: Point3f, p4: Point3f, item: T) {
+    let (i1, i2, i3, i4) = (self.hash(p1), self.hash(p2), self.hash(p3), self.hash(p4));
+    let min = Self::comp_min(Self::comp_min(i1, i2), Self::comp_min(i3, i4));
+    let max = Self::comp_max(Self::comp_max(i1, i2), Self::comp_max(i3, i4));
+    for i in min.0..=max.0 {
+      for j in min.1..=max.1 {
+        for k in min.2..=max.2 {
+          self.table.entry((i, j, k)).or_insert(HashSet::new()).insert(item.clone());
+        }
+      }
+    }
   }
 
   pub fn neighbors(&self, point: Point3f) -> HashSet<T> {
@@ -134,10 +150,7 @@ impl TetMesh {
       let p2 = Self::point_of_node(&mesh.nodes[elem.i2]);
       let p3 = Self::point_of_node(&mesh.nodes[elem.i3]);
       let p4 = Self::point_of_node(&mesh.nodes[elem.i4]);
-      sht.put(p1, i);
-      sht.put(p2, i);
-      sht.put(p3, i);
-      sht.put(p4, i);
+      sht.put_tetra(p1, p2, p3, p4, i);
     }
     Self { mesh, sht }
   }
