@@ -14,8 +14,10 @@ fn dim<D: Dim>() -> usize {
   D::try_to_usize().unwrap()
 }
 
-pub struct Sampler<N: RealField + Float, D: Dim + DimName>
+pub struct Sampler<N, D>
 where
+  N: RealField + Float,
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D> + Allocator<N, D>,
 {
   start: VectorN<N, D>,
@@ -32,8 +34,10 @@ pub type Sampler2d = Sampler<f64, U2>;
 
 pub type Sampler3d = Sampler<f64, U3>;
 
-impl<N: RealField + Float, D: Dim + DimName> Sampler<N, D>
+impl<N, D> Sampler<N, D>
 where
+  N: RealField + Float,
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D> + Allocator<N, D>,
 {
   /// Create a new sampler with default values:
@@ -103,8 +107,9 @@ where
   }
 }
 
-struct NeighborIterator<D: Dim + DimName>
+struct NeighborIterator<D>
 where
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D>,
 {
   dim: VectorN<i64, D>,
@@ -112,8 +117,9 @@ where
   current: usize,
 }
 
-impl<D: Dim + DimName> NeighborIterator<D>
+impl<D> NeighborIterator<D>
 where
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D>,
 {
   fn new(dim: &VectorN<usize, D>, start: &VectorN<usize, D>) -> Self {
@@ -125,8 +131,9 @@ where
   }
 }
 
-impl<D: Dim + DimName> Iterator for NeighborIterator<D>
+impl<D> Iterator for NeighborIterator<D>
 where
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D>,
 {
   type Item = VectorN<usize, D>;
@@ -163,8 +170,10 @@ where
   }
 }
 
-pub struct SamplerIterator<N: RealField + Float, D: Dim + DimName>
+pub struct SamplerIterator<N, D>
 where
+  N: RealField + Float,
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D> + Allocator<N, D>,
 {
   grid_cells: Vec<Option<VectorN<N, D>>>,
@@ -177,17 +186,16 @@ where
   rng: ThreadRng,
 }
 
-impl<N: RealField + Float, D: Dim + DimName> SamplerIterator<N, D>
+impl<N, D> SamplerIterator<N, D>
 where
+  N: RealField + Float,
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D> + Allocator<N, D>,
 {
   fn new(size: VectorN<N, D>, r: N, k: usize) -> Self {
-    lazy_static! {
-      static ref SQRT_2: f64 = 2.0f64.sqrt();
-    }
-
     // First compute dx and dim
-    let grid_dx = r / N::from_f64(*SQRT_2).unwrap();
+    let n = dim::<D>() as f64;
+    let grid_dx = r / N::from_f64(n.sqrt()).unwrap();
     let grid_dim: VectorN<usize, D> = size.map(|l| NumCast::from(l / grid_dx).unwrap());
 
     // Generate grid cells
@@ -308,8 +316,10 @@ where
   }
 }
 
-impl<N: RealField + Float, D: Dim + DimName> Iterator for SamplerIterator<N, D>
+impl<N, D> Iterator for SamplerIterator<N, D>
 where
+  N: RealField + Float,
+  D: Dim + DimName,
   DefaultAllocator: Allocator<usize, D> + Allocator<i64, D> + Allocator<N, D>,
 {
   type Item = VectorN<N, D>;
