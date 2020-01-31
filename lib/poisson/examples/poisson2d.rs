@@ -10,7 +10,7 @@ use std::io::prelude::*;
 type Vector2f = Vector2<f32>;
 
 fn main() {
-  let cmd_args = App::new("poisson")
+  let cmd_args = App::new("poisson2d")
     .version("0.1")
     .author("Ziyang L. <liby99@icloud.com>")
     .about("Output 2D poisson samples in JSON format")
