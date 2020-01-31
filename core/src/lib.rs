@@ -303,99 +303,36 @@ impl<'a, 'b> World<'a, 'b> {
     }
   }
 
-  /// Put a ball with a given center and radius. The ball will have a total mass of `mass`, and
-  /// will contain `n` particles
-  pub fn put_ball<'w>(&'w mut self, center: Vector3f, radius: f32, mass: f32, n: usize) -> ParticlesHandle<'w, 'a, 'b> {
-    // Calculate individual mass and volume
-    let total_volume = 1.333333 * std::f32::consts::PI * radius * radius * radius;
-    let ind_mass = mass / (n as f32);
-    let ind_volume = total_volume / (n as f32);
-
-    // Then add n particles
-    let mut entities = vec![];
-    for _ in 0..n {
-      let pos = random_point_in_sphere(center, radius);
-      let hdl = self.put_particle(pos, ind_mass).with(ParticleVolume(ind_volume));
-      entities.push(hdl.entities[0]);
-    }
-
-    // Return the handle
-    ParticlesHandle { world: self, entities }
+  pub fn put_ball<'w>(&'w mut self, center: Vector3f, radius: f32, mass: f32) -> ParticlesHandle<'w, 'a, 'b> {
+    let reg = Sphere::new(radius);
+    let translation = Translation3f::from(center);
+    self.put_region(reg, na::convert(translation), mass)
   }
 
-  /// Put a cube to the world, with the given `min` corner position and `max` corner
-  /// position.
-  pub fn put_cube<'w>(&'w mut self, min: Vector3f, max: Vector3f, mass: f32, n: usize) -> ParticlesHandle<'w, 'a, 'b> {
-    assert!(min.x < max.x && min.y < max.y && min.z < max.z);
-
-    // Calculate individual mass and volume
-    let diff = max - min;
-    let total_volume = diff.x * diff.y * diff.z;
-    let ind_mass = mass / (n as f32);
-    let ind_volume = total_volume / (n as f32);
-
-    // Then add n particles
-    let mut entities = vec![];
-    for _ in 0..n {
-      let pos = random_point_in_cube(min, max);
-      let hdl = self.put_particle(pos, ind_mass).with(ParticleVolume(ind_volume));
-      entities.push(hdl.first());
-    }
-
-    // Return the handle
-    ParticlesHandle { world: self, entities }
+  pub fn put_cube<'w>(&'w mut self, min: Vector3f, max: Vector3f, mass: f32) -> ParticlesHandle<'w, 'a, 'b> {
+    let size = max - min;
+    let pos = min + size / 2.0;
+    let reg = Cube::new(size);
+    let translation = Translation3f::from(pos);
+    self.put_region(reg, na::convert(translation), mass)
   }
 
-  /// Put a tetrahedron mesh to the world, given the `mesh` and `transf` as transform.
-  /// You also need to provide a `density` (mass per unit cube) and the `par_mass` (mass
-  /// per particle).
   pub fn put_tetra_mesh<'w>(
     &'w mut self,
     mesh: &TetrahedronMesh,
-    transf: Transform3f,
-    density: f32,
-    par_mass: f32,
+    transf: Similarity3f,
+    mass: f32
   ) -> ParticlesHandle<'w, 'a, 'b> {
-    // All the added entities
-    let mut entities = vec![];
-
-    // Iterate through all tetrahedrons
-    for tetra in &mesh.elems {
-      let p1 = transf * msh_node_to_point(&mesh.nodes[tetra.i1]);
-      let p2 = transf * msh_node_to_point(&mesh.nodes[tetra.i2]);
-      let p3 = transf * msh_node_to_point(&mesh.nodes[tetra.i3]);
-      let p4 = transf * msh_node_to_point(&mesh.nodes[tetra.i4]);
-      let a = p2 - p1;
-      let b = p3 - p1;
-      let c = p4 - p1;
-      let volume = Vector3f::dot(&a, &Vector3f::cross(&b, &c)) / 6.0;
-      let mass = volume * density;
-      let num_pars = mass / par_mass;
-      let num_pars_usize = num_pars as usize;
-      if num_pars_usize == 0 {
-        let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
-        let hdl = self.put_particle(pos, mass).with(ParticleVolume::new(volume));
-        entities.push(hdl.first())
-      } else {
-        let par_volume = volume / num_pars;
-        for _ in 0..num_pars_usize {
-          let pos = random_point_in_tetra(p1.coords, p2.coords, p3.coords, p4.coords);
-          let hdl = self.put_particle(pos, par_mass).with(ParticleVolume::new(par_volume));
-          entities.push(hdl.first());
-        }
-      }
-    }
-
-    // Return the handle
-    ParticlesHandle { world: self, entities }
+    let reg = TetMesh::new(mesh);
+    self.put_region(reg, transf, mass)
   }
 
-  pub fn put_region<'w, R: Region>(
+  pub fn put_region<'w, R>(
     &'w mut self,
     reg: R,
     transf: Similarity3f,
     mass: f32,
-  ) -> ParticlesHandle<'w, 'a, 'b> {
+  ) -> ParticlesHandle<'w, 'a, 'b> where R: Region {
     let mut entities = vec![];
     let radius = self.dx() / self.particle_density;
     let inv_transf = transf.inverse();

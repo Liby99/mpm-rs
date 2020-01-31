@@ -1,13 +1,12 @@
 use msh_rs::*;
-use std::cmp::Eq;
-use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
 
 use super::*;
 
 pub trait Region {
+  /// Returns whether the region contains the given point
   fn contains(&self, point: Point3f) -> bool;
 
+  /// Returns the axis-aligned bounding box of the region
   fn bound(&self) -> BoundingBox;
 }
 
@@ -63,100 +62,57 @@ impl Region for Sphere {
   }
 }
 
-type SpatialHashTableIndex = (usize, usize, usize);
-
-struct SpatialHashTable<T: Hash + Eq + Clone> {
-  pub dx: f32,
-  pub table: HashMap<SpatialHashTableIndex, HashSet<T>>,
-}
-
-impl<T: Hash + Eq + Clone> SpatialHashTable<T> {
-  pub fn new(dx: f32) -> Self {
-    Self {
-      dx,
-      table: HashMap::new(),
-    }
-  }
-
-  fn hash(&self, point: Point3f) -> SpatialHashTableIndex {
-    let p = point.to_homogeneous();
-    (
-      (p.x / self.dx) as usize,
-      (p.y / self.dx) as usize,
-      (p.z / self.dx) as usize,
-    )
-  }
-
-  fn comp_min(i1: SpatialHashTableIndex, i2: SpatialHashTableIndex) -> SpatialHashTableIndex {
-    (i1.0.min(i2.0), i1.1.min(i2.1), i1.2.min(i2.2))
-  }
-
-  fn comp_max(i1: SpatialHashTableIndex, i2: SpatialHashTableIndex) -> SpatialHashTableIndex {
-    (i1.0.max(i2.0), i1.1.max(i2.1), i1.2.max(i2.2))
-  }
-
-  fn put_tetra(&mut self, p1: Point3f, p2: Point3f, p3: Point3f, p4: Point3f, item: T) {
-    let (i1, i2, i3, i4) = (self.hash(p1), self.hash(p2), self.hash(p3), self.hash(p4));
-    let min = Self::comp_min(Self::comp_min(i1, i2), Self::comp_min(i3, i4));
-    let max = Self::comp_max(Self::comp_max(i1, i2), Self::comp_max(i3, i4));
-    for i in min.0..=max.0 {
-      for j in min.1..=max.1 {
-        for k in min.2..=max.2 {
-          self
-            .table
-            .entry((i, j, k))
-            .or_insert(HashSet::new())
-            .insert(item.clone());
-        }
-      }
-    }
-  }
-
-  pub fn neighbors(&self, point: Point3f) -> HashSet<T> {
-    let mut all = HashSet::new();
-    let idx = self.hash(point);
-    for i in idx.0 - 1..=idx.0 + 1 {
-      for j in idx.1 - 1..=idx.1 + 1 {
-        for k in idx.2 - 1..=idx.2 + 1 {
-          let idx = (i, j, k);
-          if let Some(items) = self.table.get(&idx) {
-            for item in items {
-              all.insert(item.clone());
-            }
-          }
-        }
-      }
-    }
-    all
-  }
-}
-
 pub struct TetMesh {
-  mesh: TetrahedronMesh,
-  sht: SpatialHashTable<usize>,
+  tetras: Vec<Tetra>,
+  bb: BoundingBox,
+}
+
+struct Tetra {
+  p1: Point3f,
+  d1: Vector3f,
+  d2: Vector3f,
+  d3: Vector3f,
+}
+
+impl Tetra {
+  fn new(p1: Point3f, p2: Point3f, p3: Point3f, p4: Point3f) -> Self {
+    Self {
+      p1,
+      d1: p2 - p1,
+      d2: p3 - p1,
+      d3: p4 - p1,
+    }
+  }
 }
 
 impl TetMesh {
-  pub fn new(mesh: TetrahedronMesh) -> Self {
-    // First get the dx: divide the largest axis into 50 parts
-    let (mut min, mut max) = (Vector3f::zeros(), Vector3f::zeros());
+  pub fn new(mesh: &TetrahedronMesh) -> Self {
+    let mut points = Vec::with_capacity(mesh.nodes.len());
+    let mut tetras = Vec::with_capacity(mesh.elems.len());
+
+    // First get the points, and cache all the points
+    let v0 = Self::vector_of_node(&mesh.nodes[0]);
+    let (mut min, mut max) = (v0, v0);
     for node in &mesh.nodes {
       let p = Self::point_of_node(node);
       min = Math::component_min(&p.coords, &min);
       max = Math::component_max(&p.coords, &max);
+      points.push(p);
     }
-    let dx = (max - min).argmax().1 / 50.0;
+    let bb = BoundingBox::new_from_vec(min, max);
 
-    // Then construct the spatial hash table
-    let mut sht = SpatialHashTable::new(dx);
-    for (i, elem) in mesh.elems.iter().enumerate() {
-      let p1 = Self::point_of_node(&mesh.nodes[elem.i1]);
-      let p2 = Self::point_of_node(&mesh.nodes[elem.i2]);
-      let p3 = Self::point_of_node(&mesh.nodes[elem.i3]);
-      let p4 = Self::point_of_node(&mesh.nodes[elem.i4]);
-      sht.put_tetra(p1, p2, p3, p4, i);
+    // Then cache all the tetrahedrons
+    for elem in &mesh.elems {
+      tetras.push(Tetra::new(
+        points[elem.i1],
+        points[elem.i2],
+        points[elem.i3],
+        points[elem.i4],
+      ));
     }
-    Self { mesh, sht }
+
+    // Return the mesh
+    Self { tetras, bb }
   }
 
   fn point_of_node(node: &Node) -> Point3f {
@@ -166,24 +122,18 @@ impl TetMesh {
   fn vector_of_node(node: &Node) -> Vector3f {
     Vector3f::new(node.x as f32, node.y as f32, node.y as f32)
   }
+
+  fn in_tetra(&self, point: Point3f, tetra: &Tetra) -> bool {
+    let d = point - tetra.p1;
+    let (a, b, c) = (d.dot(&tetra.d1), d.dot(&tetra.d2), d.dot(&tetra.d3));
+    a > 0.0 && b > 0.0 && c > 0.0 && a + b + c < 1.0
+  }
 }
 
 impl Region for TetMesh {
   fn contains(&self, point: Point3f) -> bool {
-    for elem_index in self.sht.neighbors(point) {
-      let elem = &self.mesh.elems[elem_index];
-      let p1 = Self::point_of_node(&self.mesh.nodes[elem.i1]);
-      let p2 = Self::point_of_node(&self.mesh.nodes[elem.i2]);
-      let p3 = Self::point_of_node(&self.mesh.nodes[elem.i3]);
-      let p4 = Self::point_of_node(&self.mesh.nodes[elem.i4]);
-      let a = p2 - p1;
-      let b = p3 - p1;
-      let c = p4 - p1;
-      let d = point - p1;
-      let alpha = d.dot(&a);
-      let beta = d.dot(&b);
-      let gamma = d.dot(&c);
-      if alpha + beta + gamma < 1.0 {
+    for tetra in &self.tetras {
+      if self.in_tetra(point, &tetra) {
         return true;
       }
     }
@@ -191,13 +141,6 @@ impl Region for TetMesh {
   }
 
   fn bound(&self) -> BoundingBox {
-    let p1 = Self::vector_of_node(&self.mesh.nodes[0]);
-    let (mut min, mut max) = (p1.clone(), p1.clone());
-    for node in &self.mesh.nodes {
-      let v = Self::vector_of_node(node);
-      min = Math::component_min(&min, &v);
-      max = Math::component_max(&max, &v);
-    }
-    BoundingBox::new_from_vec(min, max)
+    self.bb
   }
 }

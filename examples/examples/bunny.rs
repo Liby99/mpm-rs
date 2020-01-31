@@ -20,12 +20,11 @@ fn main() {
   let nu = 0.3;
   let boundary_thickness = 0.04;
   let boundary_fric_mu = 1.4;
-  let density = 1500.0;
-  let particle_mass = 0.005;
+  let mass = 20.0;
   let bunny_velocity = Vector3f::new(-3.0, 1.0, -8.0);
   let translation = na::Translation3::from(Vector3f::new(0.5, 0.3, 0.5));
   let rotation = na::UnitQuaternion::identity();
-  let scale = 3.5;
+  let scale = 3.0;
   let transf = na::Similarity3::from_parts(translation, rotation, scale);
   let hide_random_portion = 0.9;
 
@@ -46,7 +45,7 @@ fn main() {
   // Put the bunny
   let bunny = TetrahedronMesh::load(bunny_file).unwrap();
   world
-    .put_tetra_mesh(&bunny, na::convert(transf), density, particle_mass)
+    .put_tetra_mesh(&bunny, na::convert(transf), mass)
     .with(ParticleVelocity::new(bunny_velocity))
     .with(ParticleDeformation::elastic(youngs_modulus, nu));
 

@@ -11,7 +11,6 @@ fn main() {
   let center = Vector3f::new(0.5, 0.7, 0.5);
   let radius = 0.1;
   let mass = 10.0;
-  let num_particles = 10000;
 
   // Initialize the world, use WindowSystem to visualize
   let mut world = WorldBuilder::new()
@@ -26,7 +25,7 @@ fn main() {
 
   // Put the ball
   world
-    .put_ball(center, radius, mass, num_particles)
+    .put_ball(center, radius, mass)
     .with(ParticleDeformation::elastic(youngs_modulus, nu));
 
   // Check the ending state determined by window system.

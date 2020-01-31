@@ -6,6 +6,8 @@ pub type Vector3i = Vector3<i32>;
 
 pub type Vector3u = Vector3<usize>;
 
+pub type Vector4u = Vector4<usize>;
+
 pub type Point3f = Point3<f32>;
 
 pub type Matrix3f = Matrix3<f32>;
@@ -19,6 +21,8 @@ pub type Rotation3f = Rotation3<f32>;
 pub type Isometry3f = Isometry3<f32>;
 
 pub type Similarity3f = Similarity3<f32>;
+
+pub type Affine3f = Affine3<f32>;
 
 pub type Transform3f = Transform3<f32>;
 

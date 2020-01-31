@@ -8,7 +8,6 @@ struct Ball {
   velocity: Vector3f,
   radius: f32,
   mass: f32,
-  num_particles: usize,
 }
 
 fn main() {
@@ -36,21 +35,18 @@ fn main() {
       velocity: Vector3f::new(3.0, 3.0, 5.0),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 5000,
     },
     Ball {
       center: Vector3f::new(0.3, 0.2, 0.9),
       velocity: Vector3f::new(-3.0, 5.0, -2.0),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 5000,
     },
     Ball {
       center: Vector3f::new(0.6, 0.4, 0.3),
       velocity: Vector3f::new(10.0, 2.0, 8.0),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 5000,
     },
   ];
 
@@ -68,7 +64,7 @@ fn main() {
   // Put the balls
   for b in balls {
     world
-      .put_ball(b.center, b.radius, b.mass, b.num_particles)
+      .put_ball(b.center, b.radius, b.mass)
       .with(ParticleVelocity::new(b.velocity))
       .with(ParticleDeformation::elastic(youngs_modulus, nu));
   }
