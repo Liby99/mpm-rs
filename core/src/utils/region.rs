@@ -7,6 +7,8 @@ use super::*;
 
 pub trait Region {
   fn contains(&self, point: Point3f) -> bool;
+
+  fn bound(&self) -> BoundingBox;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -32,6 +34,10 @@ impl Region for Cube {
     let z_contains = p.z.abs() < self.half_size.z;
     x_contains && y_contains && z_contains
   }
+
+  fn bound(&self) -> BoundingBox {
+    BoundingBox::new_from_vec(-self.half_size, self.half_size)
+  }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -49,6 +55,11 @@ impl Region for Sphere {
   fn contains(&self, point: Point3f) -> bool {
     let dist = point.coords.magnitude();
     dist < self.radius
+  }
+
+  fn bound(&self) -> BoundingBox {
+    let p = Point3f::new(self.radius, self.radius, self.radius);
+    BoundingBox::new(-p, p)
   }
 }
 
@@ -111,8 +122,8 @@ impl TetMesh {
     let (mut min, mut max) = (Vector3f::zeros(), Vector3f::zeros());
     for node in &mesh.nodes {
       let p = Self::point_of_node(node);
-      min = Self::component_min(&p.coords, &min);
-      max = Self::component_max(&p.coords, &max);
+      min = Math::component_min(&p.coords, &min);
+      max = Math::component_max(&p.coords, &max);
     }
     let dx = (max - min).argmax().1 / 50.0;
 
@@ -131,16 +142,12 @@ impl TetMesh {
     Self { mesh, sht }
   }
 
-  fn component_max(v1: &Vector3f, v2: &Vector3f) -> Vector3f {
-    Vector3f::new(v1.x.max(v2.x), v1.y.max(v2.y), v1.z.max(v2.z))
-  }
-
-  fn component_min(v1: &Vector3f, v2: &Vector3f) -> Vector3f {
-    Vector3f::new(v1.x.min(v2.x), v1.y.min(v2.y), v1.z.min(v2.z))
-  }
-
   fn point_of_node(node: &Node) -> Point3f {
     Point3f::new(node.x as f32, node.y as f32, node.z as f32)
+  }
+
+  fn vector_of_node(node: &Node) -> Vector3f {
+    Vector3f::new(node.x as f32, node.y as f32, node.y as f32)
   }
 }
 
@@ -164,5 +171,16 @@ impl Region for TetMesh {
       }
     }
     false
+  }
+
+  fn bound(&self) -> BoundingBox {
+    let p1 = Self::vector_of_node(&self.mesh.nodes[0]);
+    let (mut min, mut max) = (p1.clone(), p1.clone());
+    for node in &self.mesh.nodes {
+      let v = Self::vector_of_node(node);
+      min = Math::component_min(&min, &v);
+      max = Math::component_max(&max, &v);
+    }
+    BoundingBox::new_from_vec(min, max)
   }
 }

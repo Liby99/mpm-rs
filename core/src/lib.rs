@@ -1,10 +1,10 @@
 extern crate msh_rs;
 extern crate nalgebra as na;
+extern crate poisson;
 extern crate rand;
 extern crate rand_distr;
 extern crate rayon;
 extern crate specs;
-extern crate poisson;
 
 pub mod components;
 pub mod resources;
@@ -398,13 +398,15 @@ impl<'a, 'b> World<'a, 'b> {
   ) -> ParticlesHandle<'w, 'a, 'b> {
     let mut entities = vec![];
     let radius = self.dx() / self.particle_density;
-    let size = self.size();
     let inv_transf = transf.inverse();
-    for point in poisson::Sampler3f::new().with_size(size).with_radius(radius).generate() {
-      let ppos = Point3f::new(point.x, point.y, point.z);
+    let bb = reg.bound().transform(&transf);
+    let sampler = poisson::Sampler3f::new().with_size(bb.size()).with_radius(radius);
+    for sample in sampler.generate() {
+      let ppos = bb.min + sample;
+      let vpos = Math::vector_of_point(&ppos);
       let reg_ppos = inv_transf * ppos;
       if reg.contains(reg_ppos) {
-        let hdl = self.put_particle(point, 0.0).with(ParticleVolume::new(radius.powi(3)));
+        let hdl = self.put_particle(vpos, 0.0).with(ParticleVolume::new(radius.powi(3)));
         entities.push(hdl.first());
       }
     }

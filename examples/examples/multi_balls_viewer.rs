@@ -1,3 +1,5 @@
+extern crate nalgebra as na;
+
 use mpm_rs::*;
 use mpm_viewer::*;
 
@@ -6,7 +8,6 @@ struct Ball {
   velocity: Vector3f,
   radius: f32,
   mass: f32,
-  num_particles: usize,
   color: Color,
 }
 
@@ -26,7 +27,6 @@ fn main() {
       velocity: Vector3f::new(3.0, 3.0, 5.0),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 5000,
       color: Color::new(1.0, 0.0, 0.0),
     },
     Ball {
@@ -34,7 +34,6 @@ fn main() {
       velocity: Vector3f::new(-3.0, 5.0, -2.0),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 5000,
       color: Color::new(0.0, 1.0, 0.0),
     },
     Ball {
@@ -42,7 +41,6 @@ fn main() {
       velocity: Vector3f::new(10.0, 2.0, 8.0),
       radius: 0.1,
       mass: 10.0,
-      num_particles: 5000,
       color: Color::new(0.0, 0.0, 1.0),
     },
   ];
@@ -60,8 +58,10 @@ fn main() {
 
   // Put the balls
   for b in balls {
+    let sph = Sphere::new(b.radius);
+    let transl = Translation3f::from(b.center);
     world
-      .put_ball(b.center, b.radius, b.mass, b.num_particles)
+      .put_region(sph, na::convert(transl), b.mass)
       .with(ParticleVelocity::new(b.velocity))
       .with(ParticleDeformation::elastic(youngs_modulus, nu))
       .with(ParticleColor::new(b.color));

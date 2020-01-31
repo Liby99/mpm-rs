@@ -9,9 +9,9 @@ pub struct EvolveDeformationSystem;
 impl EvolveDeformationSystem {
   fn clamp_sigma(sigma: Vector3f, low: f32, up: f32) -> Vector3f {
     Vector3f::new(
-      clamp(sigma.x, low, up),
-      clamp(sigma.y, low, up),
-      clamp(sigma.z, low, up),
+      Math::clamp(sigma.x, low, up),
+      Math::clamp(sigma.y, low, up),
+      Math::clamp(sigma.z, low, up),
     )
   }
 }

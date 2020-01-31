@@ -220,7 +220,7 @@ where
     self.active_samples.push(start.clone());
 
     // Put this into grid cells
-    let idx = self.cell_idx(&start).unwrap();
+    let idx = self.cell_idx(&start).expect("Start position should be inside range");
     self.grid_cells[idx] = Some(start);
 
     // Return self
